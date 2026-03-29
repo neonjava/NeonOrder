@@ -25,13 +25,13 @@ public class ChooseItemGUI {
     private static final List<ChestGui> AZ = new ArrayList<>();
     private static final List<ChestGui> ZA = new ArrayList<>();
     private static NeonOrder plugin;
-//    private static DBManager db;
+    // private static DBManager db;
     private static MiniMessage mm;
     private static ConfigCache cache;
 
     public static void init(NeonOrder plugin) {
         ChooseItemGUI.plugin = plugin;
-//        db = plugin.getDbManager();
+        // db = plugin.getDbManager();
         mm = plugin.mm;
         cache = plugin.getConfigs();
 
@@ -44,10 +44,16 @@ public class ChooseItemGUI {
 
     private static List<ChestGui> getPages(SortTypes sortType) {
         switch (sortType) {
-            case A_Z -> { return AZ; }
-            case Z_A -> { return ZA; }
+            case A_Z -> {
+                return AZ;
+            }
+            case Z_A -> {
+                return ZA;
+            }
+            default -> {
+                return AZ;
+            }
         }
-        return AZ;
     }
 
     public static void choose(Player p, int sortIdx, int pageIdx) {
@@ -60,35 +66,37 @@ public class ChooseItemGUI {
         PlayerUtils.openGui(p, pages.getFirst());
     }
 
-    private static void addButtons(StaticPane buttons, List<ChestGui> pages, SortTypes sortType, final int idx, final int pagesAmount) {
+    private static void addButtons(StaticPane buttons, List<ChestGui> pages, SortTypes sortType, final int idx,
+            final int pagesAmount) {
         final List<SortTypes> sortOrder = cache.getChooseSortsOrder();
         final int sortIdx = sortOrder.indexOf(sortType);
-        if (idx > 0) buttons.addItem(ConvertUtils.parseButton(
-                cache.getChooseBackButton(),
-                e -> PlayerUtils.clickBack(e, pages.get(idx - 1))
-        ), cache.getChooseBackButton().getSlot(), 0);
+        if (idx > 0)
+            buttons.addItem(ConvertUtils.parseButton(
+                    cache.getChooseBackButton(),
+                    e -> PlayerUtils.clickBack(e, pages.get(idx - 1))), cache.getChooseBackButton().getSlot(), 0);
 
-        if (idx + 1 < pagesAmount) buttons.addItem(ConvertUtils.parseButton(
-                cache.getChooseNextButton(),
-                e -> PlayerUtils.clickNext(e, pages.get(idx + 1))
-        ), cache.getChooseNextButton().getSlot(), 0);
+        if (idx + 1 < pagesAmount)
+            buttons.addItem(ConvertUtils.parseButton(
+                    cache.getChooseNextButton(),
+                    e -> PlayerUtils.clickNext(e, pages.get(idx + 1))), cache.getChooseNextButton().getSlot(), 0);
 
         buttons.addItem(ConvertUtils.parseSortButton(cache.getChooseSortButton(), sortType, e -> {
-            if (!(e.getWhoClicked() instanceof Player p)) return;
+            if (!(e.getWhoClicked() instanceof Player p))
+                return;
             final int nextIdx = sortIdx == sortOrder.size() - 1 ? 0 : sortIdx + 1;
             choose(p, nextIdx, idx);
             PlayerUtils.playSound(p, cache.getSortSound());
         }), cache.getChooseSortButton().getSlot(), 0);
 
         buttons.addItem(ConvertUtils.parseButton(cache.getChooseSearchButton(), e -> {
-            if (!(e.getWhoClicked() instanceof Player p)) return;
+            if (!(e.getWhoClicked() instanceof Player p))
+                return;
             SignGUI.newSession(
                     p,
                     (s) -> p.getScheduler().run(plugin, t -> ChooseItemGUI.choose(p, sortIdx, s), null),
                     cache.getLines(),
                     cache.getSignBlock(),
-                    cache.getSearchLine()
-            );
+                    cache.getSearchLine());
 
         }), cache.getChooseSearchButton().getSlot(), 0);
     }
@@ -134,13 +142,15 @@ public class ChooseItemGUI {
             }
             final GuiItem guiItem = new GuiItem(item.clone());
             guiItem.setAction(e -> {
-                if (!(e.getWhoClicked() instanceof Player p)) return;
+                if (!(e.getWhoClicked() instanceof Player p))
+                    return;
                 if (e.getClick() != ClickType.RIGHT || !p.hasPermission("neonorder.admin.blacklist")) {
                     NewOrderDialog.newSession(p, item.clone());
                     return;
                 }
                 final ItemStack i = guiItem.getItem();
-                if (PDCUtils.isBlacklist(i.getItemMeta())) return;
+                if (PDCUtils.isBlacklist(i.getItemMeta()))
+                    return;
 
                 plugin.getStorage().addBlacklist(item);
                 p.sendRichMessage("<green>Item added to blacklist. Reload to take effects");
