@@ -33,7 +33,7 @@ public final class NeonOrder extends JavaPlugin {
     public static final DisconnectListener DISCONNECT_LISTENER = new DisconnectListener();
 
     private ConfigCache configs;
-//    private DBManager dbManager;
+    // private DBManager dbManager;
     @Setter
     private Storage storage;
     private DataCache dataCache;
@@ -41,29 +41,29 @@ public final class NeonOrder extends JavaPlugin {
     public final MiniMessage mm = MiniMessage.miniMessage();
     public int VERSION = -1;
 
-//    private CompletableFuture<Boolean> initVersion() {
-//        val ret = new CompletableFuture<Boolean>();
-//        // noinspection deprecation
-//        final int dataVer = Bukkit.getUnsafe().getDataVersion();
-//        dbManager.dataVersions().thenAccept(dataVersion -> {
-//            if (dataVer < 4438) { // 1.21.7 in data version
-//                ret.complete(false);
-//                return;
-//            }
-//            int maxVer = -1;
-//            for (int ver : dataVersion) {
-//                if (ver > maxVer && ver <= dataVer) maxVer = ver;
-//                if (dataVer == ver) {
-//                    VERSION = ver;
-//                    ret.complete(true);
-//                    return;
-//                }
-//            }
-//            VERSION = maxVer;
-//            ret.complete(true);
-//        });
-//        return ret;
-//    }
+    // private CompletableFuture<Boolean> initVersion() {
+    // val ret = new CompletableFuture<Boolean>();
+    // // noinspection deprecation
+    // final int dataVer = Bukkit.getUnsafe().getDataVersion();
+    // dbManager.dataVersions().thenAccept(dataVersion -> {
+    // if (dataVer < 4438) { // 1.21.7 in data version
+    // ret.complete(false);
+    // return;
+    // }
+    // int maxVer = -1;
+    // for (int ver : dataVersion) {
+    // if (ver > maxVer && ver <= dataVer) maxVer = ver;
+    // if (dataVer == ver) {
+    // VERSION = ver;
+    // ret.complete(true);
+    // return;
+    // }
+    // }
+    // VERSION = maxVer;
+    // ret.complete(true);
+    // });
+    // return ret;
+    // }
 
     @Override
     public void onLoad() {
@@ -86,15 +86,16 @@ public final class NeonOrder extends JavaPlugin {
         }
         saveResource("modified_items.db", false);
 
-        if (isFolia) new IFFolia(this);
+        if (isFolia)
+            new IFFolia(this);
 
-//        StorageMethod.init(this);
+        // StorageMethod.init(this);
 
         dataCache = new DataCache();
         configs = new ConfigCache(this);
         Storage.init();
         storage = createStorage();
-//        dbManager = new DBManager(this);
+        // dbManager = new DBManager(this);
         AlgoUtils.init(this);
         MainGUI.init(this);
         YourOrderGUI.init(this);
@@ -118,15 +119,19 @@ public final class NeonOrder extends JavaPlugin {
 
         if (configs.isCheckForUpdates()) {
             Bukkit.getAsyncScheduler().runNow(this, t -> {
-               final String newVer = UpdateUtils.checkForUpdates();
-               if (newVer == null) return;
-               Log.warn("A new version of NeonOrder (" + newVer + ") is available");
-               Log.info(mm.deserialize("<aqua>Download it on <green>Modrinth<gray>: <blue><u>https://modrinth.com/plugin/neonorder/version/" + newVer));
+                final String newVer = UpdateUtils.checkForUpdates();
+                if (newVer == null)
+                    return;
+                Log.warn("A new version of NeonOrder (" + newVer + ") is available");
+                Log.info(mm.deserialize(
+                        "<aqua>Download it on <green>Modrinth<gray>: <blue><u>https://modrinth.com/plugin/neonorder/version/"
+                                + newVer));
             });
         }
 
-        Bukkit.getPluginManager().registerEvents(DISCONNECT_LISTENER, this);
         Bukkit.getPluginManager().registerEvents(DIALOG_LISTENER, this);
+        Bukkit.getPluginManager().registerEvents(new me.neonjava.neonorder.listener.BedrockMenuListener(), this);
+        Bukkit.getPluginManager().registerEvents(DISCONNECT_LISTENER, this);
 
         Bukkit.getAsyncScheduler().runAtFixedRate(this, t -> {
 
@@ -163,6 +168,7 @@ public final class NeonOrder extends JavaPlugin {
 
         return true;
     }
+
     private static boolean isFolia() {
         try {
             Class.forName("io.papermc.paper.threadedregions.RegionizedServer");
