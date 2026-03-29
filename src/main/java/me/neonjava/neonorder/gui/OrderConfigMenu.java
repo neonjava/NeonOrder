@@ -35,7 +35,8 @@ public class OrderConfigMenu implements InventoryHolder {
 
         // Slot 10: Set Amount (Sign Input) - Use the Search Sign Type as requested
         inventory.setItem(11, create(Material.OAK_SIGN, "§b§lSet Amount: §f" + amount,
-                "§7Click to enter amount via sign."));
+                "§7Click to enter amount via sign.",
+                "§7Format: §e10  10k  10m  1b"));
 
         // Slot 13: Summary (The Item)
         ItemStack display = baseItem.clone();
@@ -54,7 +55,8 @@ public class OrderConfigMenu implements InventoryHolder {
 
         // Slot 15: Set Price (Sign Input)
         inventory.setItem(15, create(Material.GOLD_INGOT, "§6§lSet Price: §f$" + price,
-                "§7Click to enter price via sign."));
+                "§7Click to enter price via sign.",
+                "§7Format: §e10  10k  10m  1b"));
 
         // Slot 22: Confirm (Lime Glass)
         inventory.setItem(22, create(Material.LIME_STAINED_GLASS_PANE, "§a§l✔ Confirm Order",
@@ -88,7 +90,7 @@ public class OrderConfigMenu implements InventoryHolder {
                 if (val > 0)
                     this.amount = (int) val;
                 Bukkit.getScheduler().runTask(NeonOrder.plugin, this::open);
-            }, List.of("Set Amount", "↓↓↓ type below ↓↓↓", "", ""), BlockType.OAK_SIGN, 3);
+            }, List.of("Set Amount", "", "", ""), BlockType.OAK_SIGN, 2);
             return;
         }
 
@@ -99,7 +101,7 @@ public class OrderConfigMenu implements InventoryHolder {
                 if (val > 0)
                     this.price = val;
                 Bukkit.getScheduler().runTask(NeonOrder.plugin, this::open);
-            }, List.of("Set Price", "↓↓↓ type below ↓↓↓", "", ""), BlockType.OAK_SIGN, 3);
+            }, List.of("Set Price", "", "", ""), BlockType.OAK_SIGN, 2);
             return;
         }
 
