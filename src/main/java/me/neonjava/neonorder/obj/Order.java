@@ -36,15 +36,16 @@ public class Order implements me.neonjava.neonorder.api.Order {
     public int inStorage;
     public long expiresAt;
 
-//    private static DBManager db;
+    // private static DBManager db;
     private static ConfigCache cache;
 
     public static void init(NeonOrder plugin) {
-//        db = plugin.getDbManager();
+        // db = plugin.getDbManager();
         cache = plugin.getConfigs();
     }
 
-    public Order(int id, UUID owner, ItemStack item, double moneyPer, int amount, int delivered, int inStorage, long expiresAt) {
+    public Order(int id, UUID owner, ItemStack item, double moneyPer, int amount, int delivered, int inStorage,
+            long expiresAt) {
         this.id = id;
         this.owner = owner;
         this.item = item;
@@ -55,8 +56,9 @@ public class Order implements me.neonjava.neonorder.api.Order {
         this.expiresAt = expiresAt;
     }
 
-
-    public boolean isActive() { return delivered < amount && expiresAt > System.currentTimeMillis(); }
+    public boolean isActive() {
+        return delivered < amount && expiresAt > System.currentTimeMillis();
+    }
 
     /// Must be called in the player region
     public void deliver(Player p, Collection<ItemStack> items) {
@@ -71,7 +73,8 @@ public class Order implements me.neonjava.neonorder.api.Order {
             currAmount += item.getAmount();
             accepted.add(item);
         }
-        if (currAmount == 0) return;
+        if (currAmount == 0)
+            return;
 
         val event = new PlayerDeliverOrderEvent(p, this, currAmount);
         event.callEvent();
@@ -89,7 +92,8 @@ public class Order implements me.neonjava.neonorder.api.Order {
                 }
 
                 val splitAmount = exceeded - am;
-                if (splitAmount == 0) break;
+                if (splitAmount == 0)
+                    break;
                 item.setAmount(splitAmount);
                 toGive.add(item);
                 break;
@@ -101,7 +105,8 @@ public class Order implements me.neonjava.neonorder.api.Order {
 
     public Response collect(String rawAmount) {
         final Player p = Bukkit.getPlayer(getOwnerUniqueId());
-        if (p == null || !p.isOnline() || rawAmount == null) return Response.INVALID;
+        if (p == null || !p.isOnline() || rawAmount == null)
+            return Response.INVALID;
         final double dAmount = ConvertUtils.formatNumber(rawAmount);
         final int amount = (int) dAmount;
         if (dAmount == -1 || dAmount != amount) {
@@ -114,20 +119,23 @@ public class Order implements me.neonjava.neonorder.api.Order {
     /// Must be called in the player region
     public Response collect(int amount) {
         final Player p = Bukkit.getPlayer(this.getOwnerUniqueId());
-        if (p == null || !p.isOnline()) return Response.INVALID;
+        if (p == null || !p.isOnline())
+            return Response.INVALID;
         if (amount > cache.getMaxCollect() && !p.hasPermission("neonorder.bypass.max-collect")) {
             p.sendRichMessage(cache.getExceedMaxCollect());
             return Response.FAIL;
         }
 
         final int collectedInMinute = PDCUtils.getCollected(p);
-        if (collectedInMinute > cache.getMaxCollectPerMinute() && !p.hasPermission("neonorder.bypass.max-collect-per-minute")) {
+        if (collectedInMinute > cache.getMaxCollectPerMinute()
+                && !p.hasPermission("neonorder.bypass.max-collect-per-minute")) {
             p.sendRichMessage(cache.getCollectingTooFast());
             return Response.FAIL;
         }
 
         val event = new PlayerCollectItemsEvent(p, this, amount);
-        if (!event.callEvent()) return Response.FAIL;
+        if (!event.callEvent())
+            return Response.FAIL;
 
         plugin.getStorage().collectItems(this, amount).thenAccept(success -> {
             if (success.equals(Boolean.FALSE)) {
@@ -144,10 +152,10 @@ public class Order implements me.neonjava.neonorder.api.Order {
         return Response.SCHEDULED;
     }
 
-
     public void cancel(Player p) {
         val event = new PlayerCancelOrderEvent(p, this);
-        if (!event.callEvent()) return;
+        if (!event.callEvent())
+            return;
 
         plugin.getStorage().cancelOrder(this).thenAccept(payBack -> {
             if (payBack.equals(-1.0)) {
@@ -163,28 +171,33 @@ public class Order implements me.neonjava.neonorder.api.Order {
         final Function<Integer, Integer> func = exceeded -> {
             final double earning = moneyPer * (a - exceeded);
             EconUtils.addMoney(deliverer, earning);
-            deliverer.sendRichMessage(cache.getDelivered(), Placeholder.unparsed("money", ConvertUtils.formatNumber(earning)));
+            deliverer.sendRichMessage(cache.getDelivered(),
+                    Placeholder.unparsed("money", ConvertUtils.formatNumber(earning)));
             PlayerUtils.playSound(deliverer, cache.getDeliverSound());
 
             final Player ownerPlayer = Bukkit.getPlayer(owner);
-            if (ownerPlayer == null || !ownerPlayer.isOnline()) return exceeded;
+            if (ownerPlayer == null || !ownerPlayer.isOnline())
+                return exceeded;
             final ItemMeta meta = item.getItemMeta();
             final Component displayName = meta == null ? null : meta.displayName();
             assert item.getType().getItemTranslationKey() != null;
             ownerPlayer.sendRichMessage(
                     cache.getReceiveDelivery(),
                     Placeholder.unparsed("deliverer", deliverer.getName()),
-                    Placeholder.unparsed("amount",  ConvertUtils.formatNumber(a)),
-                    Placeholder.component("item", (displayName == null ? Component.translatable(item.getType().getItemTranslationKey()) : displayName))
-            );
+                    Placeholder.unparsed("amount", ConvertUtils.formatNumber(a)),
+                    Placeholder.component("item",
+                            (displayName == null ? Component.translatable(item.getType().getItemTranslationKey())
+                                    : displayName)));
             return exceeded;
         };
         return plugin.getStorage().deliverOrder(this, a).thenApply(func);
     }
 
     public OrderStatus getStatus() {
-        if (delivered >= amount) return OrderStatus.COMPLETED;
-        if (expiresAt < System.currentTimeMillis()) return OrderStatus.EXPIRED;
+        if (delivered >= amount)
+            return OrderStatus.COMPLETED;
+        if (expiresAt < System.currentTimeMillis())
+            return OrderStatus.EXPIRED;
         return OrderStatus.AVAILABLE;
     }
 
@@ -192,7 +205,9 @@ public class Order implements me.neonjava.neonorder.api.Order {
         return !isActive() && inStorage == 0;
     }
 
-    public double getPaid() { return moneyPer * delivered; }
+    public double getPaid() {
+        return moneyPer * delivered;
+    }
 
     @Override
     public UUID getOwnerUniqueId() {
@@ -232,24 +247,37 @@ public class Order implements me.neonjava.neonorder.api.Order {
     }
 
     public static Response create(Player p, ItemStack item, String rawMoneyPer, String rawAmount) {
-        if (rawAmount == null || rawMoneyPer == null) return Response.INVALID;
+        if (rawAmount == null || rawMoneyPer == null)
+            return Response.INVALID;
         final double dAmount = ConvertUtils.formatNumber(rawAmount);
         final int amount = (int) dAmount;
         final double moneyPer = ConvertUtils.formatNumber(rawMoneyPer);
-        if (dAmount == -1 || moneyPer == -1 || dAmount != amount) return Response.INVALID;
+        if (dAmount == -1 || moneyPer == -1 || dAmount != amount)
+            return Response.INVALID;
 
         return create(p, item, moneyPer, amount);
     }
 
     public static Response create(Player owner, ItemStack item, double moneyPer, int amount) {
         val event = new PlayerCreateOrderEvent(owner, item, moneyPer, amount);
-        if (!event.callEvent()) return Response.CANCELLED;
+        if (!event.callEvent())
+            return Response.CANCELLED;
 
         if (!EconUtils.removeMoney(owner, moneyPer * amount)) {
             return Response.FAIL;
         }
 
         plugin.getStorage().createOrder(owner.getUniqueId(), item, amount, moneyPer);
+
+        // Broadcast new order creation
+        Bukkit.broadcast(NeonOrder.plugin.mm.deserialize(
+                "<gray>Player <white>" + owner.getName() + " <gray>has set an order for <white>" + amount
+                        + "x <item><gray>!",
+                Placeholder.component("item",
+                        (item.getItemMeta() != null && item.getItemMeta().hasDisplayName()
+                                ? item.getItemMeta().displayName()
+                                : Component.translatable(item.getType().getItemTranslationKey())))));
+
         return Response.SUCCESS;
     }
 
