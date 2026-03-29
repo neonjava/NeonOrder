@@ -88,7 +88,7 @@ public class OrderConfigMenu implements InventoryHolder {
                 if (val > 0)
                     this.amount = (int) val;
                 Bukkit.getScheduler().runTask(NeonOrder.plugin, this::open);
-            }, List.of("", "↑↑↑↑↑↑↑↑↑↑↑↑", "Set Amount", ""), BlockType.OAK_SIGN, 1);
+            }, List.of("Set Amount", "↓↓↓ type below ↓↓↓", "", ""), BlockType.OAK_SIGN, 3);
             return;
         }
 
@@ -99,7 +99,7 @@ public class OrderConfigMenu implements InventoryHolder {
                 if (val > 0)
                     this.price = val;
                 Bukkit.getScheduler().runTask(NeonOrder.plugin, this::open);
-            }, List.of("", "↑↑↑↑↑↑↑↑↑↑↑↑", "Set Price", ""), BlockType.OAK_SIGN, 1);
+            }, List.of("Set Price", "↓↓↓ type below ↓↓↓", "", ""), BlockType.OAK_SIGN, 3);
             return;
         }
 
