@@ -32,6 +32,11 @@ public class NewOrderDialog {
     }
 
     public static void start(Player p) {
+        if (YourOrderGUI.isAtLimit(p)) {
+            p.sendRichMessage("<red>You have reached your order limit (<white>" + YourOrderGUI.getLimit(p)
+                    + "</white>). Cancel an existing order first.");
+            return;
+        }
         ChooseItemGUI.choose(p, 0, 0);
     }
 
