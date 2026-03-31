@@ -1,48 +1,48 @@
 # NeonOrder Messages Configuration
-# Use MiniMessage format (e.g. <green>, <red>, <white>)
+# Use MiniMessage format (e.g. <gradient:color1:color2>, <bold>, <italic>)
 
 messages:
-  create-order-success: "<gray>Your order has been created"
-  invalid-input: "<red>Invalid number or format"
-  delivery: "<gray>You earned <green>$%money%<gray> from delivering an order"
-  receive-delivery: "<aqua>%deliverer% <gray>delivered you <aqua>%amount% <item>"
-  not-enough-money: "<red>You do not have enough money"
-  deliver-self: "<red>You cannot deliver your own order"
-  exceeded-max-collect: "<red>You are collecting too many items"
-  collecting-too-fast: "<red>You are collecting items too fast. Wait a minute..."
+  create-order-success: "<gradient:#84fab0:#8fd3f4><bold>[ORDERS]</bold></gradient> <green>Your order has been created"
+  invalid-input: "<gradient:#ff0844:#ffb199><bold>[!]</bold></gradient> <red>Invalid number or format"
+  delivery: "<gradient:#f6d365:#fda085><bold>[!]</bold></gradient> <gray>You earned <green>$%money%<gray> from delivering an order"
+  receive-delivery: "<gradient:#84fab0:#8fd3f4><bold>[!]</bold></gradient> <aqua>%deliverer% <gray>delivered you <aqua>%amount% <item>"
+  not-enough-money: "<gradient:#ff0844:#ffb199><bold>[!]</bold></gradient> <red>You do not have enough money"
+  deliver-self: "<gradient:#ff0844:#ffb199><bold>[!]</bold></gradient> <red>You cannot deliver your own order"
+  exceeded-max-collect: "<gradient:#ff0844:#ffb199><bold>[!]</bold></gradient> <red>You are collecting too many items"
+  collecting-too-fast: "<gradient:#ff0844:#ffb199><bold>[!]</bold></gradient> <red>You are collecting items too fast. Wait a minute..."
 
 gui:
   main:
-    title: "Orders"
+    title: "<gradient:#f6d365:#fda085><bold>ORDERS LISTING</bold></gradient>"
     order-lore:
       - ""
-      - "<#786500>$%paid%<gray>/<#017800>$%total% <gray>Paid"
-      - "<#786500>%delivered%<gray>/<#017800>%amount% <gray>Delivered"
+      - "<gray>Paid: <gradient:#f6d365:#fda085>$%paid%</gradient><gray>/<green>$%total%</green>"
+      - "<gray>Progress: <gradient:#f6d365:#fda085>%delivered%</gradient><gray>/<green>%amount%</green>"
       - "<green>$%money-per% <white>each"
       - ""
       - "<white>Click to deliver <aqua>%player%<white>'s order"
   
   your-orders:
-    title: "Your Orders"
+    title: "<gradient:#f6d365:#fda085><bold>MY PENDING ORDERS</bold></gradient>"
     order-lore:
       - ""
-      - "<#786500>$%paid%<gray>/<#017800>$%total% <gray>Paid"
-      - "<#786500>%delivered%<gray>/<#017800>%amount% <gray>Delivered"
+      - "<gray>Paid: <gradient:#f6d365:#fda085>$%paid%</gradient><gray>/<green>$%total%</green>"
+      - "<gray>Progress: <gradient:#f6d365:#fda085>%delivered%</gradient><gray>/<green>%amount%</green>"
       - "<green>$%money-per% <white>each"
       - ""
       - "%order-status%"
 
   edit-order:
-    title: "ORDERS -> Edit Order"
-    collect: "&aCollect Items"
-    collect-lore: "&7Click to view and collect stored items."
-    cancel: "&cCancel Order"
-    cancel-lore: "&7Click to permanently cancel this order."
+    title: "<gradient:#f6d365:#fda085><bold>ORDER EDITING</bold></gradient>"
+    collect: "<gradient:#84fab0:#8fd3f4><bold>✔ COLLECT ITEMS</bold></gradient>"
+    collect-lore: "<gray>View and withdraw your stored items."
+    cancel: "<gradient:#ff0844:#ffb199><bold>✖ CANCEL ORDER</bold></gradient>"
+    cancel-lore: "<gray>Permanently cancel and refund this order."
 
   collect-items:
-    title: "ORDERS --> Collect Items (%page%/%total%)"
-    dispenser: "&bClick to drop items"
+    title: "<gradient:#f6d365:#fda085><bold>COLLECTION (%page%/%total%)</bold></gradient>"
+    dispenser: "<gradient:#84fab0:#8fd3f4><bold>DROP STORED ITEMS</bold></gradient>"
     dispenser-lore: 
-      - "&7Clicking this will drop items"
-      - "&7directly into your inventory."
-      - "&7Currently stored: &f%amount%"
+      - "<gray>Click to withdraw all stored items"
+      - "<gray>directly into your inventory."
+      - "<gray>Currently Stored: <gradient:#84fab0:#8fd3f4>%amount%</gradient>"
