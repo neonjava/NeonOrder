@@ -30,7 +30,9 @@ import java.util.logging.Level;
 @SuppressWarnings("UnstableApiUsage")
 public class ConfigCache {
     private final File configFile;
+    private final File messageFile;
     private ConfigFile config;
+    private ConfigFile messages;
     private final NeonOrder plugin;
 
     private boolean bStats = true;
@@ -39,8 +41,7 @@ public class ConfigCache {
     private String mainGuiTitle;
     private List<String> orderLore;
     private List<SortTypes> ordersSortsOrder;
-    private final SlotInfo
-            refreshButton = new SlotInfo(-1, null, null, null),
+    private final SlotInfo refreshButton = new SlotInfo(-1, null, null, null),
             yoButton = new SlotInfo(-1, null, null, null),
             ordersSortButton = new SlotInfo(-1, null, null, null),
             ordersBackButton = new SlotInfo(-1, null, null, null),
@@ -49,13 +50,11 @@ public class ConfigCache {
 
     private String yoGuiTitle;
     private List<String> yoLore;
-    private final SlotInfo
-            newOrderButton = new SlotInfo(-1, null, null, null);
+    private final SlotInfo newOrderButton = new SlotInfo(-1, null, null, null);
 
     private String chooseItemTitle;
     private List<SortTypes> chooseSortsOrder;
-    private final SlotInfo
-            chooseBackButton = new SlotInfo(-1, null, null, null),
+    private final SlotInfo chooseBackButton = new SlotInfo(-1, null, null, null),
             chooseNextButton = new SlotInfo(-1, null, null, null),
             chooseSearchButton = new SlotInfo(-1, null, null, null),
             chooseSortButton = new SlotInfo(-1, null, null, null);
@@ -144,6 +143,7 @@ public class ConfigCache {
     public ConfigCache(NeonOrder plugin) {
         this.plugin = plugin;
         this.configFile = new File(plugin.getDataFolder(), "config.yml");
+        this.messageFile = new File(plugin.getDataFolder(), "messages.yml");
         if (!reload()) {
             plugin.getLogger().severe("Failed to load config.");
         }
@@ -180,35 +180,44 @@ public class ConfigCache {
         checkFiles();
         try {
             this.config = ConfigFile.loadConfig(configFile);
+            this.messages = ConfigFile.loadConfig(messageFile);
         } catch (Exception e) {
-            plugin.getLogger().log(Level.SEVERE, "Failed to load config file", e);
+            plugin.getLogger().log(Level.SEVERE, "Failed to load config files", e);
             return;
         }
         // CONFIG
 
         // NOT YET
-//        config.addComment("storage", "Choose how the data should be saved");
-//        config.addDefault("storage.method", "sqlite", "Available options are 'sqlite' and 'mysql'");
-//        config.addComment("storage.config", "Configurations if you use mysql method");
-//        config.addDefault("storage.config.address", "localhost",
-//                "Define the host and port for the database\n" +
-//                "Default port is used if not specified.\n" +
-//                "If the port is different, specify as 'host:port'");
-//        config.addDefault("storage.config.database", "minecraft", "Name of the database to store data in");
-//        config.addDefault("storage.config.username", "root", "Credentials for the database");
-//        config.addDefault("storage.config.password", "");
-//        config.addDefault("storage.config.table-prefix", "neonorder_", "Prefix for tables created by NeonOrder");
+        // config.addComment("storage", "Choose how the data should be saved");
+        // config.addDefault("storage.method", "sqlite", "Available options are 'sqlite'
+        // and 'mysql'");
+        // config.addComment("storage.config", "Configurations if you use mysql
+        // method");
+        // config.addDefault("storage.config.address", "localhost",
+        // "Define the host and port for the database\n" +
+        // "Default port is used if not specified.\n" +
+        // "If the port is different, specify as 'host:port'");
+        // config.addDefault("storage.config.database", "minecraft", "Name of the
+        // database to store data in");
+        // config.addDefault("storage.config.username", "root", "Credentials for the
+        // database");
+        // config.addDefault("storage.config.password", "");
+        // config.addDefault("storage.config.table-prefix", "neonorder_", "Prefix for
+        // tables created by NeonOrder");
 
         config.addDefault("bstats", true, "Whether to let bStats collect data anonymously or not");
         config.addDefault("check-for-updates", true, "Whether to check for updates or not");
         config.addDefault("log-transactions", true, "Whether to log money changes of players or not");
-        config.addDefault("expires-after", 7L * 24L * 60L * 60L * 1000L, "After this amount of millisecond(s), the order will be expired");
-        config.addDefault("sort-prefix", "<aqua>", "This will be put at the beginning of the sort type that is being selected");
-        config.addDefault("max-collect", 1000, "Maximum amount of items to collect, this shouldn't be confused with max-collect-per-minute");
+        config.addDefault("expires-after", 7L * 24L * 60L * 60L * 1000L,
+                "After this amount of millisecond(s), the order will be expired");
+        config.addDefault("sort-prefix", "<aqua>",
+                "This will be put at the beginning of the sort type that is being selected");
+        config.addDefault("max-collect", 1000,
+                "Maximum amount of items to collect, this shouldn't be confused with max-collect-per-minute");
         config.addDefault("max-collect-per-minute", 1000,
                 "The maximum amount of items a player can collect every minute\n" +
-                "Setting this too high might allow players to lag the server with large orders\n" +
-                "The 1-minute timer is global, not per-player.");
+                        "Setting this too high might allow players to lag the server with large orders\n" +
+                        "The 1-minute timer is global, not per-player.");
         config.addDefault("similarity-check", List.of(
                 "minecraft:enchantments",
                 "minecraft:bundle_contents",
@@ -218,7 +227,8 @@ public class ConfigCache {
                 "minecraft:potion_contents",
                 "minecraft:stored_enchantments",
                 "minecraft:max_stack_size",
-//                "minecraft:custom_data", // Custom data doesn't exist in the registry for some reason?
+                // "minecraft:custom_data", // Custom data doesn't exist in the registry for
+                // some reason?
                 "minecraft:custom_model_data",
                 "minecraft:ominous_bottle_amplifier",
                 "minecraft:damage",
@@ -226,11 +236,13 @@ public class ConfigCache {
                 "minecraft:item_model",
                 "minecraft:bundle_contents",
                 "minecraft:damage_type",
-                "minecraft:consumable"
-        ), "This defines how should two items to be similar.\n" +
-                "If all the following data component types are equal on both items beside their item types, they are similar.\n" +
-                "This similarity check happens when a player deliver an order, it accepts items in the delivery inventory that are similar to the one in the order\n" +
-                "See a list of data components here, note that only use ones that exist on your server version: https://minecraft.wiki/w/Data_component_format#List_of_components");
+                "minecraft:consumable"),
+                "This defines how should two items to be similar.\n" +
+                        "If all the following data component types are equal on both items beside their item types, they are similar.\n"
+                        +
+                        "This similarity check happens when a player deliver an order, it accepts items in the delivery inventory that are similar to the one in the order\n"
+                        +
+                        "See a list of data components here, note that only use ones that exist on your server version: https://minecraft.wiki/w/Data_component_format#List_of_components");
 
         // MESSAGES
         config.addDefault("messages.create-order-success", "<gray>Your order has been created");
@@ -239,8 +251,10 @@ public class ConfigCache {
         config.addDefault("messages.receive-delivery", "<aqua><deliverer> <gray>delivered you <aqua><amount> <item>");
         config.addDefault("messages.not-enough-money", "<red>You do not have enough money");
         config.addDefault("messages.deliver-self", "<red>You cannot deliver your own order");
-        config.addDefault("messages.exceeded-max-collect", "<red>You are collecting too many items", "Message for max-collect");
-        config.addDefault("messages.collecting-too-fast", "<red>You are collecting items too fast. Wait a minute...", "Message for max-collect-per-minute");
+        config.addDefault("messages.exceeded-max-collect", "<red>You are collecting too many items",
+                "Message for max-collect");
+        config.addDefault("messages.collecting-too-fast", "<red>You are collecting items too fast. Wait a minute...",
+                "Message for max-collect-per-minute");
 
         // SOUNDS
         config.addDefault("sounds.next-page.sound", "minecraft:ui.button.click");
@@ -277,8 +291,10 @@ public class ConfigCache {
         config.addDefault("sort-types." + SortTypes.Z_A.getIdentifier(), "Z - A");
 
         // ORDER STATUS
-        config.addComment("order-status", "How should different types of order status appear\nThey will be used with <order-status> placeholder");
-        config.addDefault("order-status." + OrderStatus.AVAILABLE.getIdentifier(), "<gray>Expires after <day>d <hour>h <minute>m <second>s");
+        config.addComment("order-status",
+                "How should different types of order status appear\nThey will be used with <order-status> placeholder");
+        config.addDefault("order-status." + OrderStatus.AVAILABLE.getIdentifier(),
+                "<gray>Expires after <day>d <hour>h <minute>m <second>s");
         config.addDefault("order-status." + OrderStatus.EXPIRED.getIdentifier(), "<red>Order Expired");
         config.addDefault("order-status." + OrderStatus.COMPLETED.getIdentifier(), "<green>Order Completed");
 
@@ -290,27 +306,30 @@ public class ConfigCache {
                 "<#786500><delivered><gray>/<#017800><amount> <gray>Delivered",
                 "<green>$<money-per> <white>each",
                 "",
-                "<white>Click to deliver <aqua><player><white>'s order"
-        ));
+                "<white>Click to deliver <aqua><player><white>'s order"));
         config.addDefault("gui.main.sorts-order", List.of(
                 "most-money-per-item",
                 "recently-listed",
                 "most-delivered",
-                "most-paid"
-        ), "This indicates the next sort type to select when switching to another one\n" +
-                "A_Z and Z_A sorts are not supported.");
-        new SlotInfo(4, List.of("<white>Click to refresh"), "<aqua>Refresh", ItemType.PAPER).addDefault(config, "gui.main.buttons.refresh");
-        new SlotInfo(6, List.of("<white>Click to view your orders"), "<aqua>Your Orders", ItemType.CHEST).addDefault(config, "gui.main.buttons.your-orders");
+                "most-paid"),
+                "This indicates the next sort type to select when switching to another one\n" +
+                        "A_Z and Z_A sorts are not supported.");
+        new SlotInfo(4, List.of("<white>Click to refresh"), "<aqua>Refresh", ItemType.PAPER).addDefault(config,
+                "gui.main.buttons.refresh");
+        new SlotInfo(6, List.of("<white>Click to view your orders"), "<aqua>Your Orders", ItemType.CHEST)
+                .addDefault(config, "gui.main.buttons.your-orders");
         new SlotInfo(3, List.of(
                 "",
                 "<white> • <most-money-per-item>",
                 "<white> • <recently-listed>",
                 "<white> • <most-delivered>",
-                "<white> • <most-paid>"
-        ), "<aqua>Sort", ItemType.HOPPER).addDefault(config, "gui.main.buttons.sort");
-        new SlotInfo(0, List.of("<white>Click to go to the previous page"), "<aqua>Back", ItemType.ARROW).addDefault(config, "gui.main.buttons.back");
-        new SlotInfo(8, List.of("<white>Click to go to the next page"), "<aqua>Next", ItemType.ARROW).addDefault(config, "gui.main.buttons.next");
-        new SlotInfo(5, List.of("<white>Click to search"), "<aqua>Search", ItemType.OAK_SIGN).addDefault(config, "gui.main.buttons.search");
+                "<white> • <most-paid>"), "<aqua>Sort", ItemType.HOPPER).addDefault(config, "gui.main.buttons.sort");
+        new SlotInfo(0, List.of("<white>Click to go to the previous page"), "<aqua>Back", ItemType.ARROW)
+                .addDefault(config, "gui.main.buttons.back");
+        new SlotInfo(8, List.of("<white>Click to go to the next page"), "<aqua>Next", ItemType.ARROW).addDefault(config,
+                "gui.main.buttons.next");
+        new SlotInfo(5, List.of("<white>Click to search"), "<aqua>Search", ItemType.OAK_SIGN).addDefault(config,
+                "gui.main.buttons.search");
 
         // YOUR ORDERS GUI
         config.addDefault("gui.your-orders.title", "Your Orders");
@@ -320,24 +339,25 @@ public class ConfigCache {
                 "<#786500><delivered><gray>/<#017800><amount> <gray>Delivered",
                 "<green>$<money-per> <white>each",
                 "",
-                "<order-status>"
-        ));
-        new SlotInfo(-1, List.of("<white>Click to create a new order"), "<aqua>New Order", ItemType.MAP).addDefault(config, "gui.your-orders.buttons.new-order");
+                "<order-status>"));
+        new SlotInfo(-1, List.of("<white>Click to create a new order"), "<aqua>New Order", ItemType.MAP)
+                .addDefault(config, "gui.your-orders.buttons.new-order");
 
         // CHOOSE ITEM GUI
         config.addDefault("gui.choose-item.title", "Choose Your Item");
         config.addDefault("gui.choose-item.sorts-order", List.of(
                 "a-z",
-                "z-a"
-        ), "Only A_Z and Z_A sorts are supported, don't put other sort types in here");
-        new SlotInfo(0, List.of("<white>Click to go to the previous page"), "<aqua>Back", ItemType.ARROW).addDefault(config, "gui.choose-item.buttons.back");
-        new SlotInfo(8, List.of("<white>Click to go to the next page"), "<aqua>Next", ItemType.ARROW).addDefault(config, "gui.choose-item.buttons.next");
-        new SlotInfo(5, List.of("<white>Click to search"), "<aqua>Search", ItemType.OAK_SIGN).addDefault(config, "gui.choose-item.buttons.search");
+                "z-a"), "Only A_Z and Z_A sorts are supported, don't put other sort types in here");
+        new SlotInfo(0, List.of("<white>Click to go to the previous page"), "<aqua>Back", ItemType.ARROW)
+                .addDefault(config, "gui.choose-item.buttons.back");
+        new SlotInfo(8, List.of("<white>Click to go to the next page"), "<aqua>Next", ItemType.ARROW).addDefault(config,
+                "gui.choose-item.buttons.next");
+        new SlotInfo(5, List.of("<white>Click to search"), "<aqua>Search", ItemType.OAK_SIGN).addDefault(config,
+                "gui.choose-item.buttons.search");
         new SlotInfo(3, List.of(
                 "",
                 "<white> • <a-z>",
-                "<white> • <z-a>"
-        ), "<aqua>Sort", ItemType.HOPPER).addDefault(config, "gui.choose-item.buttons.sort");
+                "<white> • <z-a>"), "<aqua>Sort", ItemType.HOPPER).addDefault(config, "gui.choose-item.buttons.sort");
 
         // SEARCH SIGN GUI
         config.addDefault("gui.search-sign.type", "minecraft:oak_sign");
@@ -347,8 +367,7 @@ public class ConfigCache {
                 "",
                 "↑↑↑↑↑↑↑↑↑↑↑↑",
                 "Search",
-                ""
-        ));
+                ""));
 
         // DELIVERY GUI
         config.addDefault("gui.delivery.title", "Delivering...");
@@ -386,7 +405,8 @@ public class ConfigCache {
 
         // COLLECT ITEMS DIALOG
         config.addDefault("gui.collect-items.title", "Collect Items");
-        config.addDefault("gui.collect-items.body", "You are collecting items from this order. You can collect up to <aqua><in-storage> <item>");
+        config.addDefault("gui.collect-items.body",
+                "You are collecting items from this order. You can collect up to <aqua><in-storage> <item>");
         config.addDefault("gui.collect-items.amount-label", "Amount");
         config.addDefault("gui.collect-items.cancel-button", "<red>Cancel");
         config.addDefault("gui.collect-items.cancel-tooltip", "Click to cancel");
@@ -403,13 +423,15 @@ public class ConfigCache {
 
         config.save();
         config.reload();
+        messages.save();
+        messages.reload();
 
-//        storageMethod = StorageMethod.fromString(config.getString("storage.method"));
-//        remoteAddress = config.getString("storage.config.address");
-//        databaseName = config.getString("storage.config.database");
-//        dbUsername = config.getString("storage.config.username");
-//        dbPassword = config.getString("storage.config.password");
-//        tablePref = config.getString("storage.config.table-prefix");
+        // storageMethod = StorageMethod.fromString(config.getString("storage.method"));
+        // remoteAddress = config.getString("storage.config.address");
+        // databaseName = config.getString("storage.config.database");
+        // dbUsername = config.getString("storage.config.username");
+        // dbPassword = config.getString("storage.config.password");
+        // tablePref = config.getString("storage.config.table-prefix");
         storageMethod = StorageMethod.SQLITE;
         tablePref = "neonorder_";
 
@@ -463,7 +485,8 @@ public class ConfigCache {
 
         mainGuiTitle = config.getString("gui.main.title");
         orderLore = config.getStringList("gui.main.order-lore");
-        ordersSortsOrder = config.getStringList("gui.main.sorts-order").stream().map(SortTypes::fromIdentifier).toList();
+        ordersSortsOrder = config.getStringList("gui.main.sorts-order").stream().map(SortTypes::fromIdentifier)
+                .toList();
         refreshButton.deserialize(config.getConfigSection("gui.main.buttons.refresh"));
         yoButton.deserialize(config.getConfigSection("gui.main.buttons.your-orders"));
         ordersSortButton.deserialize(config.getConfigSection("gui.main.buttons.sort"));
@@ -476,7 +499,8 @@ public class ConfigCache {
         newOrderButton.deserialize(config.getConfigSection("gui.your-orders.buttons.new-order"));
 
         chooseItemTitle = config.getString("gui.choose-item.title");
-        chooseSortsOrder = config.getStringList("gui.choose-item.sorts-order").stream().map(SortTypes::fromIdentifier).toList();
+        chooseSortsOrder = config.getStringList("gui.choose-item.sorts-order").stream().map(SortTypes::fromIdentifier)
+                .toList();
         chooseBackButton.deserialize(config.getConfigSection("gui.choose-item.buttons.back"));
         chooseNextButton.deserialize(config.getConfigSection("gui.choose-item.buttons.next"));
         chooseSearchButton.deserialize(config.getConfigSection("gui.choose-item.buttons.search"));
@@ -533,7 +557,8 @@ public class ConfigCache {
     }
 
     private Sound getSound(String name) {
-        return Sound.sound(Key.key(config.getString("sounds." + name + ".sound")), Sound.Source.UI, config.getFloat("sounds." + name + ".volume"), config.getFloat("sounds." + name + ".pitch"));
+        return Sound.sound(Key.key(config.getString("sounds." + name + ".sound")), Sound.Source.UI,
+                config.getFloat("sounds." + name + ".volume"), config.getFloat("sounds." + name + ".pitch"));
     }
 
     private void checkFiles() {

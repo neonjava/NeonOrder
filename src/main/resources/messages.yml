@@ -1,0 +1,48 @@
+# NeonOrder Messages Configuration
+# Use MiniMessage format (e.g. <green>, <red>, <white>)
+
+messages:
+  create-order-success: "<gray>Your order has been created"
+  invalid-input: "<red>Invalid number or format"
+  delivery: "<gray>You earned <green>$%money%<gray> from delivering an order"
+  receive-delivery: "<aqua>%deliverer% <gray>delivered you <aqua>%amount% <item>"
+  not-enough-money: "<red>You do not have enough money"
+  deliver-self: "<red>You cannot deliver your own order"
+  exceeded-max-collect: "<red>You are collecting too many items"
+  collecting-too-fast: "<red>You are collecting items too fast. Wait a minute..."
+
+gui:
+  main:
+    title: "Orders"
+    order-lore:
+      - ""
+      - "<#786500>$%paid%<gray>/<#017800>$%total% <gray>Paid"
+      - "<#786500>%delivered%<gray>/<#017800>%amount% <gray>Delivered"
+      - "<green>$%money-per% <white>each"
+      - ""
+      - "<white>Click to deliver <aqua>%player%<white>'s order"
+  
+  your-orders:
+    title: "Your Orders"
+    order-lore:
+      - ""
+      - "<#786500>$%paid%<gray>/<#017800>$%total% <gray>Paid"
+      - "<#786500>%delivered%<gray>/<#017800>%amount% <gray>Delivered"
+      - "<green>$%money-per% <white>each"
+      - ""
+      - "%order-status%"
+
+  edit-order:
+    title: "ORDERS -> Edit Order"
+    collect: "&aCollect Items"
+    collect-lore: "&7Click to view and collect stored items."
+    cancel: "&cCancel Order"
+    cancel-lore: "&7Click to permanently cancel this order."
+
+  collect-items:
+    title: "ORDERS --> Collect Items (%page%/%total%)"
+    dispenser: "&bClick to drop items"
+    dispenser-lore: 
+      - "&7Clicking this will drop items"
+      - "&7directly into your inventory."
+      - "&7Currently stored: &f%amount%"

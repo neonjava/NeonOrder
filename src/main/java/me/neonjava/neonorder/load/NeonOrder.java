@@ -85,6 +85,7 @@ public final class NeonOrder extends JavaPlugin {
             saveResource("items.db", false);
         }
         saveResource("modified_items.db", false);
+        saveResource("messages.yml", false);
 
         if (isFolia)
             new IFFolia(this);
