@@ -90,13 +90,14 @@ public final class NeonOrder extends JavaPlugin {
         if (isFolia)
             new IFFolia(this);
 
-        // StorageMethod.init(this);
-
+        Log.info("Initializing data cache and configurations...");
         dataCache = new DataCache();
         configs = new ConfigCache(this);
+
+        Log.info("Connecting to storage (" + configs.getStorageMethod() + ")...");
         Storage.init();
         storage = createStorage();
-        // dbManager = new DBManager(this);
+
         AlgoUtils.init(this);
         MainGUI.init(this);
         YourOrderGUI.init(this);
