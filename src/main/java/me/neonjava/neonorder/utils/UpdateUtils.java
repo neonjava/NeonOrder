@@ -14,7 +14,7 @@ import java.net.URI;
 
 @Slf4j
 public class UpdateUtils {
-    private static final String itemsURL = "https://github.com/Imneonjava/NeonOrder/raw/refs/heads/master/items.db";
+    private static final String itemsURL = "https://raw.githubusercontent.com/Imneonjava/NeonOrder/master/items.db";
     private static File itemsFile;
 
     private static final String API_URL = "https://api.modrinth.com/v2/project/";
@@ -37,7 +37,7 @@ public class UpdateUtils {
     public static boolean downloadItems() {
         Log.info("Downloading items list...");
         try (val in = new BufferedInputStream(URI.create(itemsURL).toURL().openStream());
-             val out = new FileOutputStream(itemsFile)) {
+                val out = new FileOutputStream(itemsFile)) {
             byte[] buffer = new byte[1024];
             int readBytes;
             while ((readBytes = in.read(buffer, 0, 1024)) != -1) {
@@ -50,16 +50,18 @@ public class UpdateUtils {
             return false;
         }
     }
+
     /// Check for updates
     /// Returns the newer version if available, otherwise returns null
     public static String checkForUpdates() {
         final String latestVer = fetchLatestVer();
-        if (latestVer == null || latestVer.compareTo(plVer) <= 0) return null;
+        if (latestVer == null || latestVer.compareTo(plVer) <= 0)
+            return null;
         return latestVer;
     }
 
     private static String fetchLatestVer() {
-        final String urlText =  API_URL + PROJECT_ID + "/version?game_versions=" + mcVer;
+        final String urlText = API_URL + PROJECT_ID + "/version?game_versions=" + mcVer;
         try {
             HttpURLConnection connection = (HttpURLConnection) URI.create(urlText).toURL().openConnection();
             connection.setRequestProperty("User-Agent", "NeonOrder Update Checker");
@@ -81,7 +83,7 @@ public class UpdateUtils {
         return null;
     }
 
-    private static  String getRes(HttpURLConnection connection) throws IOException {
+    private static String getRes(HttpURLConnection connection) throws IOException {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
             StringBuilder response = new StringBuilder();
             String line;

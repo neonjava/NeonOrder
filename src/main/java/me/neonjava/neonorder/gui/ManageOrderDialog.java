@@ -179,25 +179,47 @@ public class ManageOrderDialog {
                 if (activeDropTasks.containsKey(p.getUniqueId()))
                         return;
 
+                final java.util.concurrent.atomic.AtomicBoolean processing = new java.util.concurrent.atomic.AtomicBoolean(
+                                false);
                 org.bukkit.scheduler.BukkitTask task = org.bukkit.Bukkit.getScheduler().runTaskTimer(NeonOrder.plugin,
                                 () -> {
-                                        if (!p.isOnline() || order.getInStorage() <= 0) {
+                                        if (processing.get())
+                                                return;
+                                        if (!p.isOnline()) {
                                                 stopDropTask(p.getUniqueId());
                                                 return;
                                         }
 
-                                        int toDrop = Math.min(order.getInStorage(), 1000);
-                                        order.collect(toDrop);
-                                        // The items are dropped by PlayerUtils.give if we don't handle it, but wait
-                                        // order.collect(int) calls plugin.getStorage().collectItems(...) which then
-                                        // calls PlayerUtils.give(p, item, amount, true)
-                                        // Setting 'true' in PlayerUtils.give drops items if inventory is full.
-                                        // So it works as intended!
+                                        int storage = order.getInStorage();
+                                        if (storage <= 0) {
+                                                stopDropTask(p.getUniqueId());
+                                                p.closeInventory();
+                                                return;
+                                        }
 
-                                        p.sendActionBar(mm.deserialize(
-                                                        "<gradient:#f6d365:#fda085><bold>[!]</bold> Dispenser Dropping "
-                                                                        + toDrop + " items... (" + order.getInStorage()
-                                                                        + " left)"));
+                                        int toDrop = Math.min(storage, 1000);
+                                        processing.set(true);
+
+                                        NeonOrder.plugin.getStorage().collectItems(order, toDrop)
+                                                        .thenAccept(success -> {
+                                                                processing.set(false);
+                                                                if (Boolean.TRUE.equals(success)) {
+                                                                        p.sendActionBar(mm.deserialize(
+                                                                                        "<gradient:#f6d365:#fda085><bold>[!]</bold> Dropping "
+                                                                                                        + toDrop
+                                                                                                        + " items... ("
+                                                                                                        + order.getInStorage()
+                                                                                                        + " left)"));
+                                                                        org.bukkit.Bukkit.getScheduler()
+                                                                                        .runTask(NeonOrder.plugin,
+                                                                                                        () -> {
+                                                                                                                if (p.isOnline())
+                                                                                                                        showDropInProgress(
+                                                                                                                                        order,
+                                                                                                                                        p);
+                                                                                                        });
+                                                                }
+                                                        });
                                 }, 0, 100); // 5 seconds = 100 ticks
 
                 activeDropTasks.put(p.getUniqueId(), task);
@@ -216,7 +238,7 @@ public class ManageOrderDialog {
                                 .base(DialogBase.builder(mm.deserialize(cache.getDropInProgressTitle()))
                                                 .body(List.of(DialogBody.item(item)
                                                                 .description(DialogBody.plainMessage(mm.deserialize(
-                                                                                "<gray>Dropping items automatically...\n<yellow>Items left: <white>"
+                                                                                "<gradient:#84fab0:#8fd3f4><bold>==============================</bold>\n<bold>   DROPPING ITEMS AUTOMATICALLY ....   </bold>\n<bold>==============================</bold></gradient>\n<yellow>Items left: <white>"
                                                                                                 + order.getInStorage())))
                                                                 .build()))
                                                 .build())

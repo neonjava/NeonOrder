@@ -426,9 +426,10 @@ public class ConfigCache {
                 config.addDefault("gui.collect-items.cancel-tooltip", "Click to cancel");
                 config.addDefault("gui.collect-items.confirm-button", "<green>Confirm");
                 config.addDefault("gui.collect-items.confirm-tooltip", "Click to confirm");
-                config.addDefault("gui.manage-order.drop-items-button", "Dispenser Drop");
+                config.addDefault("gui.manage-order.drop-items-button", "Drop");
                 config.addDefault("gui.manage-order.drop-items-tooltip", "Click to start dropping items (1k items/5s)");
-                config.addDefault("gui.manage-order.drop-in-progress-title", "Dropping Items...");
+                config.addDefault("gui.manage-order.drop-in-progress-title",
+                                "<gradient:#f6d365:#fda085><bold>Dropping Items...");
                 config.addDefault("gui.manage-order.stop-drop-button", "<red>Stop Drop");
 
                 // CANCEL ORDER DIALOG
