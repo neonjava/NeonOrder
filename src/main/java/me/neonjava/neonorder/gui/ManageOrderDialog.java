@@ -204,19 +204,26 @@ public class ManageOrderDialog {
                                                         .thenAccept(success -> {
                                                                 processing.set(false);
                                                                 if (Boolean.TRUE.equals(success)) {
-                                                                        p.sendActionBar(mm.deserialize(
-                                                                                        "<gradient:#f6d365:#fda085><bold>[!]</bold> Dropping "
-                                                                                                        + toDrop
-                                                                                                        + " items... ("
-                                                                                                        + order.getInStorage()
-                                                                                                        + " left)"));
                                                                         org.bukkit.Bukkit.getScheduler()
                                                                                         .runTask(NeonOrder.plugin,
                                                                                                         () -> {
-                                                                                                                if (p.isOnline())
+                                                                                                                if (p.isOnline()) {
+                                                                                                                        PlayerUtils.drop(
+                                                                                                                                        p,
+                                                                                                                                        PlayerUtils.createStacks(
+                                                                                                                                                        order.getItem(),
+                                                                                                                                                        toDrop));
+                                                                                                                        p.sendActionBar(mm
+                                                                                                                                        .deserialize(
+                                                                                                                                                        "<gradient:#f6d365:#fda085><bold>[!]</bold> Dropping "
+                                                                                                                                                                        + toDrop
+                                                                                                                                                                        + " items... ("
+                                                                                                                                                                        + order.getInStorage()
+                                                                                                                                                                        + " left)"));
                                                                                                                         showDropInProgress(
                                                                                                                                         order,
                                                                                                                                         p);
+                                                                                                                }
                                                                                                         });
                                                                 }
                                                         });

@@ -48,28 +48,32 @@ public class CollectItemsGUI {
         // Navigation / Bottom Bar
         StaticPane bar = new StaticPane(0, 5, 9, 1);
 
-        // Dispenser Button (Middle)
-        ItemStack dispenser = new ItemStack(Material.DISPENSER);
-        ItemMeta dm = dispenser.getItemMeta();
+        // Drop Button (Middle)
+        ItemStack dropButton = new ItemStack(Material.DROPPER);
+        ItemMeta dm = dropButton.getItemMeta();
         if (dm != null) {
-            dm.displayName(mm.deserialize("<aqua><bold>Click to Drop Items").decoration(TextDecoration.ITALIC, false));
+            dm.displayName(mm.deserialize("<gradient:#84fab0:#8fd3f4><bold>Drop Items")
+                    .decoration(TextDecoration.ITALIC, false));
             List<Component> lore = new ArrayList<>();
             lore.add(mm.deserialize("<gray>Clicking this will drop items").decoration(TextDecoration.ITALIC, false));
-            lore.add(mm.deserialize("<gray>directly into your inventory.").decoration(TextDecoration.ITALIC, false));
+            lore.add(mm.deserialize("<gray>on the ground at your location.").decoration(TextDecoration.ITALIC, false));
             lore.add(mm.deserialize("<gray>Currently stored: <white>" + inStorage).decoration(TextDecoration.ITALIC,
                     false));
             dm.lore(lore);
-            dispenser.setItemMeta(dm);
+            dropButton.setItemMeta(dm);
         }
-        bar.addItem(new GuiItem(dispenser, e -> {
+        bar.addItem(new GuiItem(dropButton, e -> {
             if (order.inStorage > 0) {
-                // Collect max stack size or whatever the system allows
                 int amountToCollect = Math.min(order.inStorage, 64);
-                order.collect(amountToCollect);
-                // Refresh the GUI after a short delay for Bedrock sync
-                p.getScheduler().run(NeonOrder.plugin, (t) -> {
-                    open(p, order, page);
-                }, null);
+                NeonOrder.plugin.getStorage().collectItems(order, amountToCollect).thenAccept(success -> {
+                    if (Boolean.TRUE.equals(success)) {
+                        PlayerUtils.drop(p, PlayerUtils.createStacks(order.getItem(), amountToCollect));
+                        // Refresh the GUI
+                        p.getScheduler().run(NeonOrder.plugin, (t) -> {
+                            open(p, order, page);
+                        }, null);
+                    }
+                });
             }
         }), 4, 0);
 

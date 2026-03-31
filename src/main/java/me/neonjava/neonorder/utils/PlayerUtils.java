@@ -27,9 +27,9 @@ public class PlayerUtils {
 
     /**
      *
-     * @param p Player to give item to
+     * @param p     Player to give item to
      * @param items the items
-     * @param safe whether to schedule this with the player's scheduler or not
+     * @param safe  whether to schedule this with the player's scheduler or not
      */
     public static void give(Player p, Collection<ItemStack> items, boolean safe) {
         if (!safe) {
@@ -37,13 +37,18 @@ public class PlayerUtils {
             return;
         }
         val location = p.getLocation();
-        val world = location.getWorld();
         p.getScheduler().run(plugin, t -> p.give(items, true), () -> {
             Bukkit.getRegionScheduler().run(plugin, location, task -> {
-               items.forEach(item -> world.dropItem(location, item));
+                items.forEach(item -> location.getWorld().dropItemNaturally(location, item));
             });
         });
+    }
 
+    public static void drop(Player p, Collection<ItemStack> items) {
+        val location = p.getLocation();
+        Bukkit.getRegionScheduler().run(plugin, location, task -> {
+            items.forEach(item -> location.getWorld().dropItemNaturally(location, item));
+        });
     }
 
     public static void give(Player p, ItemStack item, boolean safe) {
@@ -51,8 +56,11 @@ public class PlayerUtils {
     }
 
     public static void give(Player p, ItemStack item, int amount, boolean safe) {
-        final int maxStackSize = item.getMaxStackSize();
+        PlayerUtils.give(p, createStacks(item, amount), safe);
+    }
 
+    public static List<ItemStack> createStacks(ItemStack item, int amount) {
+        final int maxStackSize = item.getMaxStackSize();
         final ItemStack copy = item.clone();
         copy.setAmount(maxStackSize);
         final int fullStackAmount = amount / maxStackSize;
@@ -61,12 +69,11 @@ public class PlayerUtils {
             items.add(copy.clone());
         }
         final int rem = amount % maxStackSize;
-
         if (rem > 0) {
             copy.setAmount(rem);
-            items.add(copy);
+            items.add(copy.clone());
         }
-        PlayerUtils.give(p, items, safe);
+        return items;
     }
 
     public static void playSound(Player p, Sound s) {
@@ -86,13 +93,15 @@ public class PlayerUtils {
     }
 
     public static void clickNext(InventoryClickEvent e, ChestGui nextPage) {
-        if (!(e.getWhoClicked() instanceof Player p)) return;
+        if (!(e.getWhoClicked() instanceof Player p))
+            return;
         PlayerUtils.openGui(p, nextPage);
         PlayerUtils.playSound(p, cache.getNextPageSound());
     }
 
     public static void clickBack(InventoryClickEvent e, ChestGui previousPage) {
-        if (!(e.getWhoClicked() instanceof Player p)) return;
+        if (!(e.getWhoClicked() instanceof Player p))
+            return;
         PlayerUtils.openGui(p, previousPage);
         PlayerUtils.playSound(p, cache.getPreviousPageSound());
     }
