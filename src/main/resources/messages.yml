@@ -41,8 +41,8 @@ gui:
 
   collect-items:
     title: "<gradient:#f6d365:#fda085><bold>COLLECTION (%page%/%total%)</bold></gradient>"
-    dispenser: "<gradient:#84fab0:#8fd3f4><bold>DROP STORED ITEMS</bold></gradient>"
-    dispenser-lore: 
+    drop: "<gradient:#84fab0:#8fd3f4><bold>DROP STORED ITEMS</bold></gradient>"
+    drop-lore: 
       - "<gray>Click to withdraw all stored items"
-      - "<gray>directly into your inventory."
+      - "<gray>on the ground at your location."
       - "<gray>Currently Stored: <gradient:#84fab0:#8fd3f4>%amount%</gradient>"

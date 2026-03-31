@@ -426,9 +426,9 @@ public class ConfigCache {
                 config.addDefault("gui.collect-items.cancel-tooltip", "Click to cancel");
                 config.addDefault("gui.collect-items.confirm-button", "<green>Confirm");
                 config.addDefault("gui.collect-items.confirm-tooltip", "Click to confirm");
-                config.addDefault("gui.manage-order.drop-items-button", "Drop");
-                config.addDefault("gui.manage-order.drop-items-tooltip", "Click to start dropping items (1k items/5s)");
-                config.addDefault("gui.manage-order.drop-in-progress-title",
+                config.addDefault("gui.manage-order.drop-button", "Drop");
+                config.addDefault("gui.manage-order.drop-tooltip", "Click to start dropping items (1k items/5s)");
+                config.addDefault("gui.manage-order.drop-status-title",
                                 "<gradient:#f6d365:#fda085><bold>Dropping Items...");
                 config.addDefault("gui.manage-order.stop-drop-button", "<red>Stop Drop");
 
@@ -568,9 +568,9 @@ public class ConfigCache {
                 collectItemsCancelHover = config.getString("gui.collect-items.cancel-tooltip");
                 collectItemsConfirmLabel = config.getString("gui.collect-items.confirm-button");
                 collectItemsConfirmHover = config.getString("gui.collect-items.confirm-tooltip");
-                dropItemsLabel = config.getString("gui.manage-order.drop-items-button");
-                dropItemsHover = config.getString("gui.manage-order.drop-items-tooltip");
-                dropInProgressTitle = config.getString("gui.manage-order.drop-in-progress-title");
+                dropItemsLabel = config.getString("gui.manage-order.drop-button");
+                dropItemsHover = config.getString("gui.manage-order.drop-tooltip");
+                dropInProgressTitle = config.getString("gui.manage-order.drop-status-title");
                 stopDropLabel = config.getString("gui.manage-order.stop-drop-button");
 
                 cancelOrderTitle = config.getString("gui.cancel-order.title");

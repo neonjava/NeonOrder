@@ -45,9 +45,13 @@ public class PlayerUtils {
     }
 
     public static void drop(Player p, Collection<ItemStack> items) {
-        val location = p.getLocation();
+        val location = p.getEyeLocation();
+        val direction = location.getDirection().multiply(0.3); // Shoot forward
         Bukkit.getRegionScheduler().run(plugin, location, task -> {
-            items.forEach(item -> location.getWorld().dropItemNaturally(location, item));
+            items.forEach(item -> {
+                val dropped = location.getWorld().dropItem(location, item);
+                dropped.setVelocity(direction);
+            });
         });
     }
 
