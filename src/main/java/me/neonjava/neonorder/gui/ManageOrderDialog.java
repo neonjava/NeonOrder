@@ -36,6 +36,11 @@ public class ManageOrderDialog {
                         return;
                 }
 
+                if (activeDropTasks.containsKey(player_.getUniqueId())) {
+                        showDropInProgress(order, player_);
+                        return;
+                }
+
                 final String name = player_.getName();
                 final ItemStack item = ConvertUtils.parseOrder(order, cache.getYoLore());
                 final Dialog collectItemsDialog = Dialog.create(builder -> builder.empty()
@@ -133,6 +138,21 @@ public class ManageOrderDialog {
                                                                                                                 .builder()
                                                                                                                 .build()))
                                                                                 .build(),
+                                                                ActionButton.builder(mm
+                                                                                .deserialize(cache.getDropItemsLabel()))
+                                                                                .tooltip(mm.deserialize(cache
+                                                                                                .getDropItemsHover()))
+                                                                                .action(DialogAction.customClick(
+                                                                                                (v, player) -> {
+                                                                                                        if (!(player instanceof Player p))
+                                                                                                                return;
+                                                                                                        startDropTask(order,
+                                                                                                                        p);
+                                                                                                },
+                                                                                                ClickCallback.Options
+                                                                                                                .builder()
+                                                                                                                .build()))
+                                                                                .build(),
                                                                 ActionButton.builder(mm.deserialize(
                                                                                 cache.getCancelOrderLabel()))
                                                                                 .tooltip(mm.deserialize(cache
@@ -151,5 +171,75 @@ public class ManageOrderDialog {
                                                                                 .build()))
                                                 .build()));
                 PlayerUtils.openDialog(player_, dialog);
+        }
+
+        private static final java.util.Map<java.util.UUID, org.bukkit.scheduler.BukkitTask> activeDropTasks = new java.util.concurrent.ConcurrentHashMap<>();
+
+        private static void startDropTask(Order order, Player p) {
+                if (activeDropTasks.containsKey(p.getUniqueId()))
+                        return;
+
+                org.bukkit.scheduler.BukkitTask task = org.bukkit.Bukkit.getScheduler().runTaskTimer(NeonOrder.plugin,
+                                () -> {
+                                        if (!p.isOnline() || order.getInStorage() <= 0) {
+                                                stopDropTask(p.getUniqueId());
+                                                return;
+                                        }
+
+                                        int toDrop = Math.min(order.getInStorage(), 1000);
+                                        order.collect(toDrop);
+                                        // The items are dropped by PlayerUtils.give if we don't handle it, but wait
+                                        // order.collect(int) calls plugin.getStorage().collectItems(...) which then
+                                        // calls PlayerUtils.give(p, item, amount, true)
+                                        // Setting 'true' in PlayerUtils.give drops items if inventory is full.
+                                        // So it works as intended!
+
+                                        p.sendActionBar(mm.deserialize(
+                                                        "<gradient:#f6d365:#fda085><bold>[!]</bold> Dispenser Dropping "
+                                                                        + toDrop + " items... (" + order.getInStorage()
+                                                                        + " left)"));
+                                }, 0, 100); // 5 seconds = 100 ticks
+
+                activeDropTasks.put(p.getUniqueId(), task);
+                showDropInProgress(order, p);
+        }
+
+        private static void stopDropTask(java.util.UUID uuid) {
+                org.bukkit.scheduler.BukkitTask task = activeDropTasks.remove(uuid);
+                if (task != null)
+                        task.cancel();
+        }
+
+        private static void showDropInProgress(Order order, Player p) {
+                final ItemStack item = ConvertUtils.parseOrder(order, cache.getYoLore());
+                final Dialog dropDialog = Dialog.create(builder -> builder.empty()
+                                .base(DialogBase.builder(mm.deserialize(cache.getDropInProgressTitle()))
+                                                .body(List.of(DialogBody.item(item)
+                                                                .description(DialogBody.plainMessage(mm.deserialize(
+                                                                                "<gray>Dropping items automatically...\n<yellow>Items left: <white>"
+                                                                                                + order.getInStorage())))
+                                                                .build()))
+                                                .build())
+                                .type(DialogType.confirmation(
+                                                ActionButton.builder(mm.deserialize(cache.getStopDropLabel()))
+                                                                .action(DialogAction.customClick(
+                                                                                (v, pl) -> {
+                                                                                        if (pl instanceof Player player)
+                                                                                                stopDropTask(player
+                                                                                                                .getUniqueId());
+                                                                                },
+                                                                                ClickCallback.Options.builder()
+                                                                                                .build()))
+                                                                .build(),
+                                                ActionButton.builder(mm.deserialize("<gray>Back"))
+                                                                .action(DialogAction.customClick(
+                                                                                (v, pl) -> {
+                                                                                        if (pl instanceof Player player)
+                                                                                                show(order, player);
+                                                                                },
+                                                                                ClickCallback.Options.builder()
+                                                                                                .build()))
+                                                                .build())));
+                PlayerUtils.openDialog(p, dropDialog);
         }
 }
