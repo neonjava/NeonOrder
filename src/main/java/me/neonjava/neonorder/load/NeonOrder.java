@@ -1,0 +1,174 @@
+package me.neonjava.neonorder.load;
+
+import com.github.retrooper.packetevents.PacketEvents;
+import com.github.retrooper.packetevents.event.PacketListenerPriority;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.val;
+import me.neonjava.neonorder.data.ConfigCache;
+import me.neonjava.neonorder.data.DataCache;
+import me.neonjava.neonorder.folia.IFFolia;
+import me.neonjava.neonorder.gui.*;
+import me.neonjava.neonorder.listener.DialogListener;
+import me.neonjava.neonorder.listener.DisconnectListener;
+import me.neonjava.neonorder.obj.Order;
+import me.neonjava.neonorder.storage.Storage;
+import me.neonjava.neonorder.storage.implementation.SQLStorage;
+import me.neonjava.neonorder.utils.*;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.milkbowl.vault.economy.Economy;
+import org.bstats.bukkit.Metrics;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.RegisteredServiceProvider;
+import org.bukkit.plugin.java.JavaPlugin;
+
+import java.util.concurrent.TimeUnit;
+
+@Getter
+public final class NeonOrder extends JavaPlugin {
+    public static NeonOrder plugin;
+    public static boolean isFolia;
+    public static final DialogListener DIALOG_LISTENER = new DialogListener();
+    public static final DisconnectListener DISCONNECT_LISTENER = new DisconnectListener();
+
+    private ConfigCache configs;
+//    private DBManager dbManager;
+    @Setter
+    private Storage storage;
+    private DataCache dataCache;
+    private Economy econ;
+    public final MiniMessage mm = MiniMessage.miniMessage();
+    public int VERSION = -1;
+
+//    private CompletableFuture<Boolean> initVersion() {
+//        val ret = new CompletableFuture<Boolean>();
+//        // noinspection deprecation
+//        final int dataVer = Bukkit.getUnsafe().getDataVersion();
+//        dbManager.dataVersions().thenAccept(dataVersion -> {
+//            if (dataVer < 4438) { // 1.21.7 in data version
+//                ret.complete(false);
+//                return;
+//            }
+//            int maxVer = -1;
+//            for (int ver : dataVersion) {
+//                if (ver > maxVer && ver <= dataVer) maxVer = ver;
+//                if (dataVer == ver) {
+//                    VERSION = ver;
+//                    ret.complete(true);
+//                    return;
+//                }
+//            }
+//            VERSION = maxVer;
+//            ret.complete(true);
+//        });
+//        return ret;
+//    }
+
+    @Override
+    public void onLoad() {
+        PacketEvents.getAPI().getEventManager().registerListener(new SignGUI(this), PacketListenerPriority.NORMAL);
+    }
+
+    @Override
+    public void onEnable() {
+        plugin = this;
+        Log.init();
+        isFolia = isFolia();
+        if (!setupEconomy()) {
+            Log.warn("NeonOrder disabled due to no Vault dependency found!");
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+        UpdateUtils.init(this);
+        if (!UpdateUtils.downloadItems()) {
+            saveResource("items.db", false);
+        }
+        saveResource("modified_items.db", false);
+
+        if (isFolia) new IFFolia(this);
+
+//        StorageMethod.init(this);
+
+        dataCache = new DataCache();
+        configs = new ConfigCache(this);
+        Storage.init();
+        storage = createStorage();
+//        dbManager = new DBManager(this);
+        AlgoUtils.init(this);
+        MainGUI.init(this);
+        YourOrderGUI.init(this);
+        EconUtils.init(this);
+        Order.init(this);
+        ConvertUtils.init(this);
+        PlayerUtils.init(this);
+        PDCUtils.init(this);
+        AdminToolGUI.init();
+
+        ChooseItemGUI.init(this);
+
+        NewOrderDialog.init(this);
+        DeliveryConfirmDialog.init(this);
+        ManageOrderDialog.init(this);
+
+        if (configs.isBStats()) {
+            final int pluginId = 27569;
+            val metrics = new Metrics(this, pluginId);
+        }
+
+        if (configs.isCheckForUpdates()) {
+            Bukkit.getAsyncScheduler().runNow(this, t -> {
+               final String newVer = UpdateUtils.checkForUpdates();
+               if (newVer == null) return;
+               Log.warn("A new version of NeonOrder (" + newVer + ") is available");
+               Log.info(mm.deserialize("<aqua>Download it on <green>Modrinth<gray>: <blue><u>https://modrinth.com/plugin/neonorder/version/" + newVer));
+            });
+        }
+
+        Bukkit.getPluginManager().registerEvents(DISCONNECT_LISTENER, this);
+        Bukkit.getPluginManager().registerEvents(DIALOG_LISTENER, this);
+
+        Bukkit.getAsyncScheduler().runAtFixedRate(this, t -> {
+
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                p.getScheduler().run(this, t2 -> PDCUtils.removeCollected(p), null);
+            }
+
+        }, 1, 1, TimeUnit.MINUTES);
+    }
+
+    public Storage createStorage() {
+        switch (configs.getStorageMethod()) {
+            case SQLITE -> {
+                return SQLStorage.sqlite();
+            }
+            case MYSQL -> {
+                return SQLStorage.mysql();
+            }
+            default -> {
+                return SQLStorage.h2();
+            }
+        }
+    }
+
+    private boolean setupEconomy() {
+        if (getServer().getPluginManager().getPlugin("Vault") == null) {
+            return false;
+        }
+        RegisteredServiceProvider<Economy> rsp = getServer().getServicesManager().getRegistration(Economy.class);
+        if (rsp == null) {
+            return false;
+        }
+        econ = rsp.getProvider();
+
+        return true;
+    }
+    private static boolean isFolia() {
+        try {
+            Class.forName("io.papermc.paper.threadedregions.RegionizedServer");
+            return true;
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
+    }
+}

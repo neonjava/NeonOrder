@@ -1,0 +1,47 @@
+name: NeonOrder
+version: ${version}
+main: me.neonjava.neonorder.load.NeonOrder
+bootstrapper: me.neonjava.neonorder.load.Bootstrapper
+api-version: '1.21'
+folia-supported: true
+authors: [ neonjava ]
+description: An order plugin
+permissions:
+  neonorder.admin:
+    default: op
+    description: Access to /neonorder command, this is required for any of its subcommands
+
+  neonorder.admin.blacklist:
+    default: op
+    description: Access to modify the blacklist
+
+  neonorder.admin.custom-items:
+    default: op
+    description: Access to modify the custom items
+
+  neonorder.admin.edit-orders:
+    default: op
+    description: Access to editing anyone's orders
+
+  neonorder.admin.reload:
+    default: op
+    description: Access to /neonorder reload
+
+  neonorder.bypass.max-collect:
+    default: op
+    description: Bypass max-collect value
+
+  neonorder.bypass.max-collect-per-minute:
+    default: op
+    description: Bypass max-collect-per-minute value
+
+dependencies:
+  server:
+    packetevents:
+      load: BEFORE
+      required: true
+      join-classpath: true
+    Vault:
+      load: BEFORE
+      required: true
+      join-classpath: true
