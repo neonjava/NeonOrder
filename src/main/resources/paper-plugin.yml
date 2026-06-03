@@ -37,11 +37,6 @@ permissions:
 
 dependencies:
   server:
-    packetevents:
-      load: BEFORE
-      required: true
-      join-classpath: true
     Vault:
-      load: BEFORE
       required: true
       join-classpath: true

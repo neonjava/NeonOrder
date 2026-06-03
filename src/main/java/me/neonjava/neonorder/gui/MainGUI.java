@@ -1,21 +1,23 @@
 package me.neonjava.neonorder.gui;
 
-import com.github.stefvanschie.inventoryframework.adventuresupport.ComponentHolder;
-import com.github.stefvanschie.inventoryframework.gui.type.ChestGui;
-import com.github.stefvanschie.inventoryframework.pane.OutlinePane;
-import com.github.stefvanschie.inventoryframework.pane.StaticPane;
-import lombok.val;
 import me.neonjava.neonorder.data.ConfigCache;
 import me.neonjava.neonorder.load.NeonOrder;
 import me.neonjava.neonorder.obj.Order;
+import me.neonjava.neonorder.obj.SlotInfo;
 import me.neonjava.neonorder.obj.SortTypes;
 import me.neonjava.neonorder.utils.AlgoUtils;
 import me.neonjava.neonorder.utils.ConvertUtils;
 import me.neonjava.neonorder.utils.PlayerUtils;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
@@ -24,13 +26,15 @@ import java.util.List;
 
 import static me.neonjava.neonorder.utils.ConvertUtils.ceil_div;
 
-public class MainGUI {
-    private final List<ChestGui> pages = new ArrayList<>();
-    private final Collection<Order> orders;
+public class MainGUI implements InventoryHolder {
+    private static final int ORDERS_PER_PAGE = 45;
+
     private final Player player;
-    private final int amount;
     private final int sortIdx;
     private final String search;
+    private final int pageIdx;
+    private final List<Order> orders;
+    private final Inventory inventory;
 
     private static NeonOrder plugin;
     private static ConfigCache cache;
@@ -43,157 +47,210 @@ public class MainGUI {
     }
 
     public MainGUI(Player p, int sortIdx) {
-        this.search = "";
-        this.sortIdx = sortIdx;
-        this.player = p;
-        final SortTypes sortType = cache.getOrdersSortsOrder().get(sortIdx);
-        orders = plugin.getDataCache().getSortedOrders(sortType);
-        this.amount = ceil_div(orders.size(), 45);
-        setupPages();
-        open(p);
+        this(p, sortIdx, "", 0);
     }
 
     public MainGUI(Player p, int sortIdx, String search) {
-        this.search = search;
-        this.sortIdx = sortIdx;
-        this.player = p;
-        final SortTypes sortType = cache.getOrdersSortsOrder().get(sortIdx);
-        orders = AlgoUtils.searchOrder(search, plugin.getDataCache().getSortedOrders(sortType));
+        this(p, sortIdx, search, 0);
+    }
 
-        this.amount = ceil_div(orders.size(), 45);
-        setupPages();
+    private MainGUI(Player p, int sortIdx, String search, int pageIdx) {
+        this.player = p;
+        this.sortIdx = normalizeSort(sortIdx);
+        this.search = search == null ? "" : search;
+        this.orders = loadOrders(this.search, cache.getOrdersSortsOrder().get(this.sortIdx));
+        this.pageIdx = clampPage(pageIdx, pageCount());
+        this.inventory = Bukkit.createInventory(this, 54, mm.deserialize(cache.getMainGuiTitle()));
+        render();
         open(p);
     }
 
-    private void setupPages() {
-        int curr = 0, cnt = 0;
-        ChestGui page = initPage();
-        OutlinePane orderPane = new OutlinePane(0, 0, 9, 5);
-        StaticPane buttonsPane = new StaticPane(0, 5, 9, 1);
-        addButtons(buttonsPane, curr);
+    private static int normalizeSort(int sortIdx) {
+        final int size = cache.getOrdersSortsOrder().size();
+        if (size <= 0) return 0;
+        return Math.floorMod(sortIdx, size);
+    }
 
-        for (final Order order : orders) {
-            if (!order.isActive()) continue;
-            if (cnt == 45) {
-                cnt = 0;
-                page.addPane(orderPane);
-                page.addPane(buttonsPane);
-                pages.add(page);
-                page = initPage();
-                orderPane = new OutlinePane(0, 0, 9, 5);
-                buttonsPane = new StaticPane(0, 5, 9, 1);
-                addButtons(buttonsPane, ++curr);
-            }
-            orderPane.addItem(ConvertUtils.parseOrder(order, cache.getOrderLore(), e -> {
-                val who = e.getWhoClicked();
-                if (e.getClick() == ClickType.RIGHT && who.hasPermission("neonorder.admin.edit-orders")) {
-                    val dialog = AdminToolGUI.createEditOrder(order);
-                    who.showDialog(dialog);
-                }
-                if (player.getUniqueId().equals(order.getOwnerUniqueId())) {
-                    player.sendRichMessage(cache.getDeliverSelf());
-                    return;
-                }
-                val deliverGUI = setupDeliverGUI(order);
-                deliverGUI.show(who);
-            }));
-            cnt++;
+    private static List<Order> loadOrders(String search, SortTypes sortType) {
+        final Collection<Order> sorted = plugin.getDataCache().getSortedOrders(sortType);
+        final Collection<Order> searched = search == null || search.isBlank()
+                ? sorted
+                : AlgoUtils.searchOrder(search, sorted);
+        return searched.stream().filter(Order::isActive).toList();
+    }
+
+    private static int clampPage(int page, int pages) {
+        if (pages <= 1) return 0;
+        return Math.max(0, Math.min(page, pages - 1));
+    }
+
+    private int pageCount() {
+        return Math.max(1, ceil_div(orders.size(), ORDERS_PER_PAGE));
+    }
+
+    private void render() {
+        inventory.clear();
+
+        final int start = pageIdx * ORDERS_PER_PAGE;
+        final int end = Math.min(start + ORDERS_PER_PAGE, orders.size());
+        for (int i = start; i < end; i++) {
+            inventory.setItem(i - start, ConvertUtils.parseOrder(orders.get(i), cache.getOrderLore()));
         }
-        page.addPane(orderPane);
-        page.addPane(buttonsPane);
-        pages.add(page);
+
+        setButton(cache.getOrdersBackButton(), pageIdx > 0);
+        setButton(cache.getOrdersNextButton(), pageIdx + 1 < pageCount());
+        setButton(cache.getRefreshButton(), true);
+        setSortButton();
+        setButton(cache.getOrdersSearchButton(), true);
+        setButton(cache.getYoButton(), true);
     }
 
-    private ChestGui initPage() {
-        ChestGui page = new ChestGui(6, ComponentHolder.of(mm.deserialize(cache.getMainGuiTitle())));
-        page.setOnGlobalClick(e -> e.setCancelled(true));
-        page.setOnGlobalDrag(e -> e.setCancelled(true));
-        return page;
+    private void setButton(SlotInfo info, boolean enabled) {
+        if (!enabled || info.getSlot() < 0) return;
+        inventory.setItem(45 + info.getSlot(), createButton(info));
     }
 
-    private ChestGui setupDeliverGUI(Order order) {
-        final ItemStack comparer = order.getItem();
-        final ChestGui deliverGUI = new ChestGui(cache.getDeliverRows(), ComponentHolder.of(mm.deserialize(cache.getMainGuiTitle())));
+    private void setSortButton() {
+        final SlotInfo info = cache.getOrdersSortButton();
+        if (info.getSlot() < 0) return;
 
-        deliverGUI.setOnClose(e -> {
-            if (!(e.getPlayer() instanceof Player p)) return;
-            final Inventory inv = e.getInventory();
+        final SortTypes sortType = cache.getOrdersSortsOrder().get(sortIdx);
+        final List<TagResolver> placeholders = new ArrayList<>(List.of(cache.getSortPlaceholders()));
+        placeholders.add(Placeholder.parsed(sortType.getIdentifier(), cache.getSortPrefix() + sortType.getDisplay()));
+        inventory.setItem(45 + info.getSlot(), createButton(info, TagResolver.resolver(placeholders)));
+    }
 
+    private ItemStack createButton(SlotInfo info, TagResolver... placeholders) {
+        final ItemStack item = info.getType().createItemStack();
+        item.editMeta(meta -> {
+            meta.displayName(mm.deserialize(info.getDisplayName(), placeholders).decoration(TextDecoration.ITALIC, false));
+            meta.lore(info.getLore().stream()
+                    .map(line -> mm.deserialize(line, placeholders).decoration(TextDecoration.ITALIC, false))
+                    .toList());
+        });
+        return item;
+    }
+
+    public void handle(int rawSlot, Player clicker, ClickType clickType) {
+        if (!clicker.getUniqueId().equals(player.getUniqueId())) return;
+        if (rawSlot < 0 || rawSlot >= inventory.getSize()) return;
+
+        if (rawSlot < ORDERS_PER_PAGE) {
+            handleOrderClick(rawSlot, clicker, clickType);
+            return;
+        }
+
+        final int buttonSlot = rawSlot - 45;
+        if (buttonSlot == cache.getOrdersBackButton().getSlot() && pageIdx > 0) {
+            openPage(pageIdx - 1);
+            PlayerUtils.playSound(player, cache.getPreviousPageSound());
+            return;
+        }
+        if (buttonSlot == cache.getOrdersNextButton().getSlot() && pageIdx + 1 < pageCount()) {
+            openPage(pageIdx + 1);
+            PlayerUtils.playSound(player, cache.getNextPageSound());
+            return;
+        }
+        if (buttonSlot == cache.getRefreshButton().getSlot()) {
+            openPage(pageIdx);
+            PlayerUtils.playSound(player, cache.getRefreshSound());
+            return;
+        }
+        if (buttonSlot == cache.getOrdersSortButton().getSlot()) {
+            new MainGUI(player, sortIdx + 1, search, 0);
+            PlayerUtils.playSound(player, cache.getSortSound());
+            return;
+        }
+        if (buttonSlot == cache.getOrdersSearchButton().getSlot()) {
+            player.closeInventory();
+            SignGUI.newSession(
+                    player,
+                    s -> player.getScheduler().run(plugin, t -> new MainGUI(player, sortIdx, s), null),
+                    cache.getLines(),
+                    cache.getSignBlock()
+            );
+            return;
+        }
+        if (buttonSlot == cache.getYoButton().getSlot()) {
+            openYourOrders();
+        }
+    }
+
+    private void handleOrderClick(int slot, Player clicker, ClickType clickType) {
+        final int orderIdx = pageIdx * ORDERS_PER_PAGE + slot;
+        if (orderIdx < 0 || orderIdx >= orders.size()) return;
+
+        final Order order = orders.get(orderIdx);
+        if (clickType == ClickType.RIGHT && clicker.hasPermission("neonorder.admin.edit-orders")) {
+            clicker.showDialog(AdminToolGUI.createEditOrder(order));
+            return;
+        }
+        if (player.getUniqueId().equals(order.getOwnerUniqueId())) {
+            player.sendRichMessage(cache.getDeliverSelf());
+            return;
+        }
+        new DeliveryMenu(order).open(player);
+    }
+
+    private void openYourOrders() {
+        YourOrderGUI.open(player);
+    }
+
+    private void openPage(int page) {
+        new MainGUI(player, sortIdx, search, page);
+    }
+
+    private void open(Player p) {
+        p.openInventory(inventory);
+    }
+
+    @Override
+    public Inventory getInventory() {
+        return inventory;
+    }
+
+    public static class DeliveryMenu implements InventoryHolder {
+        private final Order order;
+        private final Inventory inventory;
+
+        private DeliveryMenu(Order order) {
+            this.order = order;
+            this.inventory = Bukkit.createInventory(this, cache.getDeliverRows() * 9, mm.deserialize(cache.getDeliverTitle()));
+        }
+
+        private void open(Player player) {
+            player.openInventory(inventory);
+        }
+
+        public void handleClose(Player player) {
+            final ItemStack comparer = order.getItem();
             int amount = 0;
             final List<ItemStack> items = new ArrayList<>();
-            amount += scanInv(inv, items, comparer);
 
+            for (final ItemStack item : inventory) {
+                if (item == null || item.isEmpty()) continue;
+                items.add(item);
+                if (AlgoUtils.isSimilar(item, comparer)) {
+                    amount += item.getAmount();
+                }
+            }
+
+            inventory.clear();
+
+            if (items.isEmpty()) return;
             if (amount == 0) {
-                PlayerUtils.give(p, items, false);
-                p.getScheduler().run(plugin, t -> p.updateInventory(), null);
+                PlayerUtils.give(player, items, false);
+                player.getScheduler().run(plugin, t -> player.updateInventory(), null);
                 return;
             }
 
-            DeliveryConfirmDialog.show(p, order, amount, items);
-        });
-        return deliverGUI;
-    }
-
-    /// Returns the amount of similar item found
-    private int scanInv(Inventory inv, List<ItemStack> items, ItemStack comparer) {
-        int amount = 0;
-        for (final ItemStack item : inv) {
-            if (item == null || item.isEmpty()) continue;
-            items.add(item);
-            if (!AlgoUtils.isSimilar(item, comparer)) continue;
-            amount += item.getAmount();
+            final int deliveredAmount = amount;
+            player.getScheduler().run(plugin, task -> DeliveryConfirmGUI.open(player, order, deliveredAmount, items), null);
         }
-        return amount;
-    }
 
-    private void addButtons(StaticPane buttonsPane, int curr) {
-        if (curr > 0)
-            buttonsPane.addItem(ConvertUtils.parseButton(
-                    cache.getOrdersBackButton(),
-                    e -> PlayerUtils.clickBack(e, pages.get(curr - 1))
-        ), cache.getOrdersBackButton().getSlot(), 0);
-
-        if (curr + 1 < amount)
-            buttonsPane.addItem(ConvertUtils.parseButton(
-                    cache.getOrdersNextButton(),
-                    e -> PlayerUtils.clickNext(e, pages.get(curr + 1))
-        ), cache.getOrdersNextButton().getSlot(), 0);
-
-        buttonsPane.addItem(ConvertUtils.parseButton(cache.getRefreshButton(), e -> {
-
-            if (search.isEmpty()) new MainGUI(player, sortIdx);
-            else new MainGUI(player, sortIdx, search);
-
-            PlayerUtils.playSound(player, cache.getRefreshSound());
-
-        }), cache.getRefreshButton().getSlot(), 0);
-
-        buttonsPane.addItem(ConvertUtils.parseSortButton(cache.getOrdersSortButton(), cache.getOrdersSortsOrder().get(sortIdx), e -> {
-
-            if (search.isEmpty()) new MainGUI(player, sortIdx + 1 == cache.getOrdersSortsOrder().size() ? 0 : sortIdx + 1);
-            else new MainGUI(player, sortIdx + 1 == cache.getOrdersSortsOrder().size() ? 0 : sortIdx + 1, search);
-
-            PlayerUtils.playSound(player, cache.getSortSound());
-
-        }), cache.getOrdersSortButton().getSlot(), 0);
-
-        buttonsPane.addItem(ConvertUtils.parseButton(
-                cache.getOrdersSearchButton(),
-                e -> SignGUI.newSession(
-                    player,
-                    (s) -> player.getScheduler().run(plugin, t -> new MainGUI(player, sortIdx, s), null),
-                    cache.getLines(), cache.getSignBlock(), cache.getSearchLine()
-                )
-        ), cache.getOrdersSearchButton().getSlot(), 0);
-
-        buttonsPane.addItem(ConvertUtils.parseButton(
-                cache.getYoButton(),
-                e -> YourOrderGUI.open(player)
-        ), cache.getYoButton().getSlot(), 0);
-    }
-
-
-    private void open(Player p) {
-        PlayerUtils.openGui(p, pages.getFirst());
+        @Override
+        public Inventory getInventory() {
+            return inventory;
+        }
     }
 }

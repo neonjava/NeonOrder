@@ -97,6 +97,7 @@ public class PlayerUtils {
     }
 
     public static void clickNext(InventoryClickEvent e, ChestGui nextPage) {
+        e.setCancelled(true);
         if (!(e.getWhoClicked() instanceof Player p))
             return;
         PlayerUtils.openGui(p, nextPage);
@@ -104,6 +105,7 @@ public class PlayerUtils {
     }
 
     public static void clickBack(InventoryClickEvent e, ChestGui previousPage) {
+        e.setCancelled(true);
         if (!(e.getWhoClicked() instanceof Player p))
             return;
         PlayerUtils.openGui(p, previousPage);

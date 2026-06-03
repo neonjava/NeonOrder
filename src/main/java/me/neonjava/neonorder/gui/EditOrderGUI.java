@@ -1,87 +1,76 @@
 package me.neonjava.neonorder.gui;
 
-import com.github.stefvanschie.inventoryframework.adventuresupport.ComponentHolder;
-import com.github.stefvanschie.inventoryframework.gui.GuiItem;
-import com.github.stefvanschie.inventoryframework.gui.type.ChestGui;
-import com.github.stefvanschie.inventoryframework.pane.StaticPane;
 import me.neonjava.neonorder.load.NeonOrder;
 import me.neonjava.neonorder.obj.Order;
 import me.neonjava.neonorder.utils.ConvertUtils;
-import me.neonjava.neonorder.utils.PlayerUtils;
-import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
-import net.kyori.adventure.text.minimessage.MiniMessage;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.ArrayList;
-import java.util.List;
-
-public class EditOrderGUI {
+public class EditOrderGUI implements InventoryHolder {
+    private final Player player;
+    private final Order order;
+    private final Inventory inventory;
 
     public static void open(Player p, Order order) {
-        MiniMessage mm = NeonOrder.plugin.mm;
-        String title = "§0ORDERS -> Edit Order";
-        ChestGui gui = new ChestGui(3, ComponentHolder.of(mm.deserialize(title)));
-        gui.setOnGlobalClick(e -> e.setCancelled(true));
+        new EditOrderGUI(p, order).open();
+    }
 
-        StaticPane pane = new StaticPane(0, 0, 9, 3);
+    private EditOrderGUI(Player player, Order order) {
+        this.player = player;
+        this.order = order;
+        this.inventory = Bukkit.createInventory(this, 27, NeonOrder.plugin.mm.deserialize("<black>ORDERS -> Edit Order"));
+        render();
+    }
 
-        // Background
-        ItemStack glass = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
-        ItemMeta gm = glass.getItemMeta();
-        if (gm != null) {
-            gm.displayName(Component.empty());
-            glass.setItemMeta(gm);
+    private void render() {
+        inventory.clear();
+        ItemStack filler = item(Material.GRAY_STAINED_GLASS_PANE, " ");
+        for (int i = 0; i < inventory.getSize(); i++) inventory.setItem(i, filler);
+
+        inventory.setItem(10, ConvertUtils.parseOrder(order, NeonOrder.plugin.getConfigs().getYoLore()));
+        inventory.setItem(13, item(Material.RED_WOOL, "<red><bold>Cancel Order", "<gray>Click to cancel this order.", "<gray>Unpaid money will be returned."));
+        inventory.setItem(16, item(Material.CHEST, "<green><bold>Collect Items", "<gray>Stored: <white>" + order.getInStorage(), "<gray>Click to collect delivered items."));
+        inventory.setItem(18, item(Material.RED_STAINED_GLASS_PANE, "<red>Back to Your Orders"));
+    }
+
+    private ItemStack item(Material material, String name, String... lore) {
+        ItemStack item = new ItemStack(material);
+        item.editMeta(meta -> {
+            meta.displayName(NeonOrder.plugin.mm.deserialize(name).decoration(TextDecoration.ITALIC, false));
+            meta.lore(java.util.Arrays.stream(lore)
+                    .map(line -> NeonOrder.plugin.mm.deserialize(line).decoration(TextDecoration.ITALIC, false))
+                    .toList());
+        });
+        return item;
+    }
+
+    public void handle(int rawSlot, Player clicker) {
+        if (!clicker.getUniqueId().equals(player.getUniqueId())) return;
+        if (rawSlot == 13) {
+            player.closeInventory();
+            order.cancel(player);
+            return;
         }
-        pane.fillWith(glass);
-
-        // Slot 10: The Item
-        pane.addItem(new GuiItem(ConvertUtils.parseOrder(order, NeonOrder.plugin.getConfigs().getYoLore())), 1, 1);
-
-        // Slot 13: Cancel Order
-        ItemStack cancel = new ItemStack(Material.RED_WOOL);
-        ItemMeta cm = cancel.getItemMeta();
-        if (cm != null) {
-            cm.displayName(mm.deserialize("<red><bold>Cancel Order").decoration(TextDecoration.ITALIC, false));
-            List<Component> lore = new ArrayList<>();
-            lore.add(mm.deserialize("<gray>Click to permanently").decoration(TextDecoration.ITALIC, false));
-            lore.add(mm.deserialize("<gray>cancel this order.").decoration(TextDecoration.ITALIC, false));
-            cm.lore(lore);
-            cancel.setItemMeta(cm);
+        if (rawSlot == 16) {
+            CollectItemsGUI.open(player, order, 0);
+            return;
         }
-        pane.addItem(new GuiItem(cancel, e -> {
-            order.cancel(p);
-            p.closeInventory();
-        }), 4, 1);
-
-        // Slot 16: Collect Items
-        ItemStack collect = new ItemStack(Material.CHEST);
-        ItemMeta colm = collect.getItemMeta();
-        if (colm != null) {
-            colm.displayName(mm.deserialize("<green><bold>Collect Items").decoration(TextDecoration.ITALIC, false));
-            List<Component> lore = new ArrayList<>();
-            lore.add(mm.deserialize("<gray>Click to view and").decoration(TextDecoration.ITALIC, false));
-            lore.add(mm.deserialize("<gray>collect stored items.").decoration(TextDecoration.ITALIC, false));
-            colm.lore(lore);
-            collect.setItemMeta(colm);
+        if (rawSlot == 18) {
+            YourOrderGUI.open(player);
         }
-        pane.addItem(new GuiItem(collect, e -> {
-            CollectItemsGUI.open(p, order, 0);
-        }), 7, 1);
+    }
 
-        // Back button (Bottom Left)
-        ItemStack back = new ItemStack(Material.RED_STAINED_GLASS_PANE);
-        ItemMeta bm = back.getItemMeta();
-        if (bm != null) {
-            bm.displayName(mm.deserialize("<red>Back to Orders").decoration(TextDecoration.ITALIC, false));
-            back.setItemMeta(bm);
-        }
-        pane.addItem(new GuiItem(back, e -> YourOrderGUI.open(p)), 0, 2);
+    private void open() {
+        player.openInventory(inventory);
+    }
 
-        gui.addPane(pane);
-        PlayerUtils.openGui(p, gui);
+    @Override
+    public Inventory getInventory() {
+        return inventory;
     }
 }

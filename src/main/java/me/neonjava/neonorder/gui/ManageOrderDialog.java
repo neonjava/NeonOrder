@@ -220,9 +220,12 @@ public class ManageOrderDialog {
                                                                                                                                                                         + " items... ("
                                                                                                                                                                         + order.getInStorage()
                                                                                                                                                                         + " left)"));
-                                                                                                                        showDropInProgress(
-                                                                                                                                        order,
-                                                                                                                                        p);
+                                                                                                                        if (order.getInStorage() <= 0) {
+                                                                                                                            stopDropTask(p.getUniqueId());
+                                                                                                                            YourOrderGUI.open(p);
+                                                                                                                        } else {
+                                                                                                                            showDropInProgress(order, p);
+                                                                                                                        }
                                                                                                                 }
                                                                                                         });
                                                                 }

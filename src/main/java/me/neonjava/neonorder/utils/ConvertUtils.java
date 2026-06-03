@@ -18,18 +18,29 @@ import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
+import org.bukkit.entity.Player;
 import org.bukkit.Registry;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ItemType;
 import org.intellij.lang.annotations.Subst;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 
@@ -40,6 +51,9 @@ public class ConvertUtils {
     private static ConfigCache cache;
     private static final Registry<ItemType> itemRegistry = Registry.ITEM;
     private static final Registry<DataComponentType> dataComponentTypeRegistry = Registry.DATA_COMPONENT_TYPE;
+    private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
+    private static final ConcurrentHashMap<UUID, String> ownerNames = new ConcurrentHashMap<>();
+    private static final Collection<UUID> resolvingNames = Collections.synchronizedSet(new HashSet<>());
 
     public static void init(NeonOrder pl) {
         plugin = pl;
@@ -140,13 +154,15 @@ public class ConvertUtils {
     }
 
     public static GuiItem parseOrder(Order order, List<String> rawLore, Consumer<InventoryClickEvent> action) {
-        return new GuiItem(parseOrder(order, rawLore), action);
+        return new GuiItem(parseOrder(order, rawLore), e -> {
+            e.setCancelled(true);
+            action.accept(e);
+        });
     }
 
     public static ItemStack parseOrder(Order order, List<String> rawLore) {
         final ItemStack item = order.getItem().clone();
-        final String playerName = Bukkit.getOfflinePlayer(order.getOwnerUniqueId()).getName();
-        final String pName = playerName == null ? String.valueOf(order.getOwnerUniqueId()) : playerName;
+        final String pName = getOwnerName(order.getOwnerUniqueId());
         final List<Component> lore = rawLore.stream().map(str -> delOrder(str, order, pName).decoration(TextDecoration.ITALIC, false)).toList();
         item.lore(lore);
 
@@ -155,8 +171,7 @@ public class ConvertUtils {
 
     /// Deserialize a text with orders placeholders
     public static Component delOrder(String s, Order order) {
-        final String playerName = Bukkit.getOfflinePlayer(order.getOwnerUniqueId()).getName();
-        final String pName = playerName == null ? String.valueOf(order.getOwnerUniqueId()) : playerName;
+        final String pName = getOwnerName(order.getOwnerUniqueId());
         return delOrder(s, order, pName);
     }
 
@@ -197,7 +212,10 @@ public class ConvertUtils {
             final List<Component> lore = info.getLore().stream().map(str -> mm.deserialize(str, placeholders).decoration(TextDecoration.ITALIC, false)).toList();
             meta.lore(lore);
         });
-        return new GuiItem(item, action);
+        return new GuiItem(item, e -> {
+            e.setCancelled(true);
+            action.accept(e);
+        });
     }
 
     public static GuiItem parseSortButton(SlotInfo info, SortTypes type, Consumer<InventoryClickEvent> action) {
@@ -211,7 +229,52 @@ public class ConvertUtils {
             final List<Component> lore = info.getLore().stream().map(str -> mm.deserialize(str, TagResolver.resolver(placeholders)).decoration(TextDecoration.ITALIC, false)).toList();
             meta.lore(lore);
         });
-        return new GuiItem(item, action);
+        return new GuiItem(item, e -> {
+            e.setCancelled(true);
+            action.accept(e);
+        });
+    }
+
+    public static void cacheOwnerNames(Collection<Order> orders) {
+        orders.forEach(order -> getOwnerName(order.getOwnerUniqueId()));
+    }
+
+    public static String getOwnerName(UUID uuid) {
+        final Player online = Bukkit.getPlayer(uuid);
+        if (online != null) {
+            ownerNames.put(uuid, online.getName());
+            return online.getName();
+        }
+
+        final String cached = ownerNames.get(uuid);
+        if (cached != null) return cached;
+
+        final OfflinePlayer offline = Bukkit.getOfflinePlayer(uuid);
+        final String offlineName = offline.getName();
+        if (offlineName != null && !offlineName.equalsIgnoreCase(uuid.toString())) {
+            ownerNames.put(uuid, offlineName);
+            return offlineName;
+        }
+
+        resolveOwnerName(uuid);
+        return uuid.toString();
+    }
+
+    private static void resolveOwnerName(UUID uuid) {
+        if (!resolvingNames.add(uuid)) return;
+
+        final String cleanUuid = uuid.toString().replace("-", "");
+        final HttpRequest request = HttpRequest.newBuilder(URI.create("https://sessionserver.mojang.com/session/minecraft/profile/" + cleanUuid))
+                .header("User-Agent", "NeonOrder")
+                .GET()
+                .build();
+
+        HTTP_CLIENT.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                .thenApply(HttpResponse::body)
+                .thenApply(body -> com.google.gson.JsonParser.parseString(body).getAsJsonObject().get("name").getAsString())
+                .thenAccept(name -> ownerNames.put(uuid, name))
+                .exceptionally(e -> null)
+                .thenRun(() -> resolvingNames.remove(uuid));
     }
 
     public static int ceil_div(int a, int b) {

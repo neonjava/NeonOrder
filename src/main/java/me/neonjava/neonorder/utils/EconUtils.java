@@ -10,26 +10,33 @@ import org.bukkit.entity.Player;
 import static me.neonjava.neonorder.load.NeonOrder.plugin;
 
 public class EconUtils {
-    private static Economy eco;
     private static final MoneyTransaction currentTransaction = new MoneyTransaction();
 //    private static DBManager db;
     private static ConfigCache cache;
 
+    private static Economy getEco() {
+        org.bukkit.plugin.RegisteredServiceProvider<Economy> rsp = plugin.getServer().getServicesManager().getRegistration(Economy.class);
+        return rsp != null ? rsp.getProvider() : null;
+    }
+
     public static void init(NeonOrder plugin) {
-        eco = plugin.getEcon();
 //        db = plugin.getDbManager();
         cache = plugin.getConfigs();
     }
 
     public static void addMoney(OfflinePlayer p, double amount) {
         logTransactionBefore(p, amount);
-        eco.depositPlayer(p, amount);
+        Economy eco = getEco();
+        if (eco != null) eco.depositPlayer(p, amount);
         logTransactionAfter(p);
     }
 
-    /// Returns `true` if the player has enough money to remove, otherwise `false`
     public static boolean removeMoney(Player p, double amount) {
-        if (eco.getBalance(p) < amount) return false;
+        Economy eco = getEco();
+        if (eco == null) return false;
+        double bal = eco.getBalance(p);
+        plugin.getLogger().info("Checking balance for " + p.getName() + ": has " + bal + ", needs " + amount);
+        if (bal < amount) return false;
         logTransactionBefore(p, amount);
         eco.withdrawPlayer(p, amount);
         logTransactionAfter(p);
@@ -38,6 +45,8 @@ public class EconUtils {
 
     private static void logTransactionBefore(OfflinePlayer p, double amount) {
         if (!cache.isLogTransactions()) return;
+        Economy eco = getEco();
+        if (eco == null) return;
         currentTransaction.player = p.getUniqueId();
         currentTransaction.before = eco.getBalance(p);
         currentTransaction.amount = amount;
@@ -45,6 +54,8 @@ public class EconUtils {
 
     private static void logTransactionAfter(OfflinePlayer p) {
         if (!cache.isLogTransactions()) return;
+        Economy eco = getEco();
+        if (eco == null) return;
         currentTransaction.after = eco.getBalance(p);
         plugin.getStorage().logTransaction(currentTransaction.player, currentTransaction.before, currentTransaction.amount, currentTransaction.after);
     }

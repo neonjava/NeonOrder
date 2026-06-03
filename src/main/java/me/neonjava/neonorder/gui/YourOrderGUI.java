@@ -1,144 +1,147 @@
 package me.neonjava.neonorder.gui;
 
-import com.github.stefvanschie.inventoryframework.adventuresupport.ComponentHolder;
-import com.github.stefvanschie.inventoryframework.gui.GuiItem;
-import com.github.stefvanschie.inventoryframework.gui.type.ChestGui;
-import com.github.stefvanschie.inventoryframework.pane.OutlinePane;
-import com.github.stefvanschie.inventoryframework.pane.StaticPane;
 import me.neonjava.neonorder.data.ConfigCache;
 import me.neonjava.neonorder.load.NeonOrder;
 import me.neonjava.neonorder.obj.Order;
 import me.neonjava.neonorder.utils.ConvertUtils;
 import me.neonjava.neonorder.utils.PlayerUtils;
-import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.List;
 import java.util.UUID;
 
-public class YourOrderGUI {
+public class YourOrderGUI implements InventoryHolder {
+    private static final int PAGE_SIZE = 18; // 2 rows for items, last row for controls (total 3 rows = 27 slots)
+    private static final int[] LIMIT_TIERS = {100, 50, 25, 10, 5, 3, 1};
+    private static final int DEFAULT_LIMIT = 5;
+
     private static NeonOrder plugin;
+
+    private final Player player;
+    private final int page;
+    private final List<Order> orders;
+    private final Inventory inventory;
 
     public static void init(NeonOrder pl) {
         plugin = pl;
     }
 
-    // ── Permission-based limit ─────────────────────────────────────────────────
-    private static final int[] LIMIT_TIERS = { 100, 50, 25, 10, 5, 3, 1 };
-    private static final int DEFAULT_LIMIT = 3;
-
     public static int getLimit(Player p) {
         for (int tier : LIMIT_TIERS) {
-            if (p.hasPermission("neonorder.limit." + tier))
-                return tier;
+            if (p.hasPermission("neonorder.limit." + tier)) return tier;
         }
         return DEFAULT_LIMIT;
     }
 
     public static boolean isAtLimit(Player p) {
         UUID uuid = p.getUniqueId();
-        long active = plugin.getDataCache().getOrders(uuid).stream()
-                .filter(Order::isActive)
-                .count();
+        long active = plugin.getDataCache().getOrders(uuid).stream().filter(Order::isActive).count();
         return active >= getLimit(p);
     }
 
-    // ── GUI rendering ──────────────────────────────────────────────────────────
     public static void open(Player p) {
         open(p, 0);
     }
 
     public static void open(Player p, int page) {
-        final UUID pUUID = p.getUniqueId();
-        final List<Order> orders = plugin.getDataCache().getOrders(pUUID);
-        final ConfigCache cache = plugin.getConfigs();
-        final MiniMessage mm = plugin.mm;
-
-        final int pageSize = 45;
-        final int totalPages = Math.max(1, (int) Math.ceil(orders.size() / (double) pageSize));
-        final int clampedPage = Math.max(0, Math.min(page, totalPages - 1));
-
-        final ChestGui gui = new ChestGui(6, ComponentHolder.of(mm.deserialize(cache.getYoGuiTitle())));
-        gui.setOnGlobalClick(e -> e.setCancelled(true));
-        gui.setOnGlobalDrag(e -> e.setCancelled(true));
-
-        // Items pane (rows 0-4, all 9 cols)
-        final OutlinePane ordersPane = new OutlinePane(0, 0, 9, 5);
-        final List<String> rawLore = cache.getYoLore();
-
-        int start = clampedPage * pageSize;
-        int end = Math.min(start + pageSize, orders.size());
-
-        for (int i = start; i < end; i++) {
-            Order order = orders.get(i);
-            ordersPane.addItem(ConvertUtils.parseOrder(order, rawLore, e -> {
-                PlayerUtils.closeInv(p);
-                ManageOrderDialog.show(order, p);
-            }));
-        }
-
-        // Show "New Order" button only if player is under their limit
-        int limit = getLimit(p);
-        long activeCount = orders.stream().filter(Order::isActive).count();
-        if (activeCount < limit) {
-            ordersPane.addItem(ConvertUtils.parseButton(cache.getNewOrderButton(), e -> {
-                NewOrderDialog.start(p);
-            }));
-        }
-
-        gui.addPane(ordersPane);
-
-        // Bottom navigation bar (row 5)
-        StaticPane bar = new StaticPane(0, 5, 9, 1);
-
-        // Previous page arrow
-        if (clampedPage > 0) {
-            ItemStack prev = makeNavItem(Material.ARROW, "§e« Previous Page",
-                    "§7Page " + clampedPage + " of " + totalPages);
-            final int prevPage = clampedPage - 1;
-            bar.addItem(new GuiItem(prev, e -> open(p, prevPage)), 0, 0);
-        } else {
-            bar.addItem(new GuiItem(makeNavItem(Material.GRAY_STAINED_GLASS_PANE, " ", ""), e -> {
-            }), 0, 0);
-        }
-
-        // Limit indicator (center)
-        ItemStack info = makeNavItem(Material.PAPER,
-                "§b§lYour Orders",
-                "§7Active: §f" + activeCount + " §7/ §f" + limit,
-                "§7Page: §f" + (clampedPage + 1) + " §7of §f" + totalPages);
-        bar.addItem(new GuiItem(info, e -> {
-        }), 4, 0);
-
-        // Next page arrow
-        if (clampedPage + 1 < totalPages) {
-            ItemStack next = makeNavItem(Material.ARROW, "§eNext Page »",
-                    "§7Page " + (clampedPage + 2) + " of " + totalPages);
-            final int nextPage = clampedPage + 1;
-            bar.addItem(new GuiItem(next, e -> open(p, nextPage)), 8, 0);
-        } else {
-            bar.addItem(new GuiItem(makeNavItem(Material.GRAY_STAINED_GLASS_PANE, " ", ""), e -> {
-            }), 8, 0);
-        }
-
-        gui.addPane(bar);
-        PlayerUtils.openGui(p, gui);
+        new YourOrderGUI(p, page).open();
     }
 
-    private static ItemStack makeNavItem(Material mat, String name, String... lore) {
-        ItemStack is = new ItemStack(mat);
-        ItemMeta meta = is.getItemMeta();
-        if (meta != null) {
-            meta.displayName(net.kyori.adventure.text.Component.text(name));
-            List<net.kyori.adventure.text.Component> l = new java.util.ArrayList<>();
-            for (String s : lore)
-                l.add(net.kyori.adventure.text.Component.text(s));
-            meta.lore(l);
-            is.setItemMeta(meta);
+    private YourOrderGUI(Player player, int page) {
+        this.player = player;
+        this.orders = plugin.getDataCache().getOrders(player.getUniqueId());
+        this.page = Math.max(0, Math.min(page, pageCount() - 1));
+
+        ConfigCache cache = plugin.getConfigs();
+        // 3 rows total (27 slots): first 2 rows (18 slots) for items, last row (9 slots) for controls
+        this.inventory = Bukkit.createInventory(this, 27, plugin.mm.deserialize(cache.getYoGuiTitle()));
+        render();
+    }
+
+    private int pageCount() {
+        return Math.max(1, (orders.size() + PAGE_SIZE - 1) / PAGE_SIZE);
+    }
+
+    private void render() {
+        inventory.clear();
+
+        ConfigCache cache = plugin.getConfigs();
+        int start = page * PAGE_SIZE;
+        int end = Math.min(start + PAGE_SIZE, orders.size());
+        for (int i = start; i < end; i++) {
+            inventory.setItem(i - start, ConvertUtils.parseOrder(orders.get(i), cache.getYoLore()));
         }
-        return is;
+
+        // Map control buttons to last row (slots 18..26)
+        if (page > 0) inventory.setItem(18, item(Material.ARROW, "<yellow>Back Page", "<gray>Go to page " + page));
+        inventory.setItem(19, item(Material.BOOK, "<aqua>Your Orders", "<gray>Page <white>" + (page + 1) + "<gray>/<white>" + pageCount(), "<gray>Limit <white>" + activeCount() + "<gray>/<white>" + getLimit(player)));
+        inventory.setItem(22, isAtLimit(player)
+                ? item(Material.BARRIER, "<red>Order Limit Reached", "<gray>Cancel an active order first.")
+                : item(Material.MAP, "<green>Create New Order", "<gray>Change item to select from DB.", "<gray>Click to set amount and price."));
+        inventory.setItem(25, item(Material.CHEST, "<aqua>All Orders", "<gray>Back to public orders."));
+        if (page + 1 < pageCount()) inventory.setItem(26, item(Material.ARROW, "<yellow>Next Page", "<gray>Go to page " + (page + 2)));
+    }
+
+    private long activeCount() {
+        return orders.stream().filter(Order::isActive).count();
+    }
+
+    private ItemStack item(Material material, String name, String... lore) {
+        ItemStack item = new ItemStack(material);
+        item.editMeta(meta -> {
+            meta.displayName(plugin.mm.deserialize(name).decoration(TextDecoration.ITALIC, false));
+            meta.lore(java.util.Arrays.stream(lore)
+                    .map(line -> plugin.mm.deserialize(line).decoration(TextDecoration.ITALIC, false))
+                    .toList());
+        });
+        return item;
+    }
+
+    public void handle(int rawSlot, Player clicker) {
+        if (!clicker.getUniqueId().equals(player.getUniqueId())) return;
+        if (rawSlot < 0 || rawSlot >= inventory.getSize()) return;
+
+        if (rawSlot < PAGE_SIZE) {
+            int orderIndex = page * PAGE_SIZE + rawSlot;
+            if (orderIndex >= 0 && orderIndex < orders.size()) {
+                EditOrderGUI.open(player, orders.get(orderIndex));
+            }
+            return;
+        }
+
+        if (rawSlot == 18 && page > 0) {
+            open(player, page - 1);
+            return;
+        }
+        if (rawSlot == 22 && !isAtLimit(player)) {
+            if (NeonOrder.hasDialogAPI) {
+                PlayerUtils.closeInv(player);
+            }
+            NewOrderDialog.start(player);
+            return;
+        }
+        if (rawSlot == 25) {
+            new MainGUI(player, 0);
+            return;
+        }
+        if (rawSlot == 26 && page + 1 < pageCount()) {
+            open(player, page + 1);
+        }
+    }
+
+    private void open() {
+        player.openInventory(inventory);
+    }
+
+    @Override
+    public Inventory getInventory() {
+        return inventory;
     }
 }

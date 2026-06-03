@@ -1,16 +1,14 @@
 package me.neonjava.neonorder.gui;
 
-import com.github.retrooper.packetevents.event.PacketListener;
-import com.github.retrooper.packetevents.event.PacketReceiveEvent;
-import com.github.retrooper.packetevents.protocol.packettype.PacketType;
-import com.github.retrooper.packetevents.util.Vector3i;
-import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientUpdateSign;
 import io.papermc.paper.math.Position;
+import io.papermc.paper.event.packet.UncheckedSignChangeEvent;
+import io.papermc.paper.math.BlockPosition;
 import lombok.val;
 import me.neonjava.neonorder.load.NeonOrder;
 import me.neonjava.neonorder.obj.SignInfo;
 import me.neonjava.neonorder.utils.Log;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.BlockType;
@@ -18,6 +16,8 @@ import org.bukkit.block.Sign;
 import org.bukkit.block.TileState;
 import org.bukkit.block.sign.Side;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
 import org.jspecify.annotations.NonNull;
 
 import java.util.HashMap;
@@ -25,12 +25,12 @@ import java.util.List;
 import java.util.function.Consumer;
 
 @SuppressWarnings("UnstableApiUsage")
-public class SignGUI implements PacketListener {
+public class SignGUI implements Listener {
     private static final HashMap<Player, SignInfo> sessionsList = new HashMap<>();
     private static MiniMessage mm;
     private static NeonOrder plugin;
 
-    public static void newSession(Player p, Consumer<String> action, List<String> lines, BlockType blockType, int line) {
+    public static void newSession(Player p, Consumer<String> action, List<String> lines, BlockType blockType) {
         if (blockType == null) {
             Log.warn("Failed to show sign GUI because of invalid sign block");
             action.accept("");
@@ -55,7 +55,7 @@ public class SignGUI implements PacketListener {
         p.openVirtualSign(Position.block(loc), Side.FRONT);
         // END
 
-        sessionsList.put(p, new SignInfo(action, blockType, line, new Vector3i(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ())));
+        sessionsList.put(p, new SignInfo(action, blockType, Position.block(loc)));
     }
 
     public SignGUI(NeonOrder plugin) {
@@ -63,22 +63,28 @@ public class SignGUI implements PacketListener {
         SignGUI.plugin = plugin;
     }
 
-    @Override
-    public void onPacketReceive(@NonNull PacketReceiveEvent e) {
-        if (e.getPacketType() != PacketType.Play.Client.UPDATE_SIGN) return;
+    public static void shutdown() {
+        sessionsList.clear();
+        mm = null;
+        plugin = null;
+    }
+
+    @EventHandler
+    public void onSignChange(@NonNull UncheckedSignChangeEvent e) {
         final Player player = e.getPlayer();
         final SignInfo info = sessionsList.get(player);
         if (info == null) return;
-        final WrapperPlayClientUpdateSign wrapper = new WrapperPlayClientUpdateSign(e);
-        final Vector3i pos = info.pos();
-        if (!wrapper.getBlockPosition().equals(pos)) return;
-        final String[] lines = wrapper.getTextLines();
-        info.action().accept(lines[info.line() - 1]);
+        final BlockPosition pos = info.pos();
+        if (!e.getEditedBlockPosition().equals(pos)) return;
+        final String firstLine = e.lines().isEmpty()
+                ? ""
+                : PlainTextComponentSerializer.plainText().serialize(e.lines().get(0));
+        info.action().accept(firstLine);
 
         sessionsList.remove(player);
 
         val world = player.getWorld();
-        val loc = new Location(world, pos.getX(), pos.getY(), pos.getZ());
+        val loc = new Location(world, pos.blockX(), pos.blockY(), pos.blockZ());
 
         // PAPER
         Bukkit.getRegionScheduler().run(plugin, loc, t -> {
@@ -86,7 +92,6 @@ public class SignGUI implements PacketListener {
             if (world.getBlockState(loc) instanceof TileState tile) player.sendBlockUpdate(loc, tile);
         });
         // END
-
         e.setCancelled(true);
     }
 }

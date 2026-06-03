@@ -59,7 +59,6 @@ public class ConfigCache {
                         chooseSearchButton = new SlotInfo(-1, null, null, null),
                         chooseSortButton = new SlotInfo(-1, null, null, null);
 
-        private int searchLine = -1;
         private BlockType signBlock;
         private List<String> lines;
 
@@ -142,6 +141,7 @@ public class ConfigCache {
         private int maxCollect = 1000;
         private TagResolver[] sortPlaceholders;
 
+        private String licenseKey;
         private final List<DataComponentType.Valued<?>> similarityCheck = new ArrayList<>();
 
         public ConfigCache(NeonOrder plugin) {
@@ -209,6 +209,7 @@ public class ConfigCache {
                 // config.addDefault("storage.config.table-prefix", "neonorder_", "Prefix for
                 // tables created by NeonOrder");
 
+                config.addDefault("license-key", "NEON-OOOO-0000", "Your license key for NeonOrder");
                 config.addDefault("bstats", true, "Whether to let bStats collect data anonymously or not");
                 config.addDefault("check-for-updates", true, "Whether to check for updates or not");
                 config.addDefault("log-transactions", true, "Whether to log money changes of players or not");
@@ -373,9 +374,6 @@ public class ConfigCache {
 
                 // SEARCH SIGN GUI
                 config.addDefault("gui.search-sign.type", "minecraft:oak_sign");
-                config.addDefault("gui.search-sign.search-line", 1,
-                                "This indicates what line to take as the search query.\n" +
-                                                "By default, it's 1, so whatever the player puts in the first line of the sign will be used as the search query");
                 config.addDefault("gui.search-sign.lines", List.of(
                                 "",
                                 "↑↑↑↑↑↑↑↑↑↑↑↑",
@@ -455,6 +453,7 @@ public class ConfigCache {
                 storageMethod = StorageMethod.SQLITE;
                 tablePref = "neonorder_";
 
+                licenseKey = config.getString("license-key");
                 bStats = config.getBoolean("bstats");
                 checkForUpdates = config.getBoolean("check-for-updates");
                 logTransactions = config.getBoolean("log-transactions");
@@ -527,7 +526,6 @@ public class ConfigCache {
                 chooseSearchButton.deserialize(config.getConfigSection("gui.choose-item.buttons.search"));
                 chooseSortButton.deserialize(config.getConfigSection("gui.choose-item.buttons.sort"));
 
-                searchLine = config.getInteger("gui.search-sign.search-line");
                 lines = config.getStringList("gui.search-sign.lines");
                 signBlock = plugin.getDataCache().getBlockType(config.getString("gui.search-sign.type"));
 

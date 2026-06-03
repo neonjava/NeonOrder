@@ -11,11 +11,14 @@ import org.bukkit.Bukkit;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 
 @Slf4j
 public class UpdateUtils {
     private static final String itemsURL = "https://raw.githubusercontent.com/Imneonjava/NeonOrder/master/items.db";
     private static File itemsFile;
+    private static NeonOrder plugin;
 
     private static final String API_URL = "https://api.modrinth.com/v2/project/";
     private static final String PROJECT_ID = "EH2l9h8i";
@@ -23,31 +26,37 @@ public class UpdateUtils {
     private static String plVer;
 
     public static void init(NeonOrder plugin) {
+        UpdateUtils.plugin = plugin;
         itemsFile = new File(plugin.getDataFolder(), "items.db");
         plVer = plugin.getPluginMeta().getVersion();
 
-        try {
-            plugin.getDataFolder().mkdirs();
-            itemsFile.createNewFile();
-        } catch (IOException e) {
-            Log.error("An error occurred while creating plugin's directory", e);
-        }
+        plugin.getDataFolder().mkdirs();
     }
 
     public static boolean downloadItems() {
         Log.info("Downloading items list...");
+        val downloadFile = new File(itemsFile.getParentFile(), itemsFile.getName() + ".download");
         try (val in = new BufferedInputStream(URI.create(itemsURL).toURL().openStream());
-                val out = new FileOutputStream(itemsFile)) {
+                val out = new FileOutputStream(downloadFile)) {
             byte[] buffer = new byte[1024];
             int readBytes;
             while ((readBytes = in.read(buffer, 0, 1024)) != -1) {
                 out.write(buffer, 0, readBytes);
             }
+            Files.move(downloadFile.toPath(), itemsFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
             Log.info("Successfully downloaded items list");
             return true;
         } catch (Exception e) {
-            Log.error("Failed to download items list", e);
-            return false;
+            downloadFile.delete();
+            Log.warn("Failed to download items list; using a local fallback.");
+            if (itemsFile.isFile() && itemsFile.length() > 0) return true;
+            try {
+                plugin.saveResource("items.db", true);
+                return itemsFile.length() > 0;
+            } catch (IllegalArgumentException fallbackError) {
+                Log.error("Failed to restore the bundled items list", fallbackError);
+                return false;
+            }
         }
     }
 

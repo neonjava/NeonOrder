@@ -26,6 +26,7 @@ public class OrderConfigMenu implements InventoryHolder {
     public OrderConfigMenu(Player player, ItemStack baseItem) {
         this.player = player;
         this.baseItem = baseItem.clone();
+        this.baseItem.setAmount(1);
         this.inventory = Bukkit.createInventory(this, 27, Component.text("Confirm New Order"));
         render();
     }
@@ -89,8 +90,8 @@ public class OrderConfigMenu implements InventoryHolder {
                 double val = ConvertUtils.formatNumber(text);
                 if (val > 0)
                     this.amount = (int) val;
-                Bukkit.getScheduler().runTask(NeonOrder.plugin, this::open);
-            }, List.of("Set Amount", "10  10k  10m  1b", "\u2193 type below \u2193", ""), BlockType.OAK_SIGN, 4);
+                player.getScheduler().run(NeonOrder.plugin, task -> this.open(), null);
+            }, List.of("", "^^^^^^^^^^^^", "Set Amount", "10  10k  10m  1b"), BlockType.OAK_SIGN);
             return;
         }
 
@@ -100,8 +101,8 @@ public class OrderConfigMenu implements InventoryHolder {
                 double val = ConvertUtils.formatNumber(text);
                 if (val > 0)
                     this.price = val;
-                Bukkit.getScheduler().runTask(NeonOrder.plugin, this::open);
-            }, List.of("Set Price", "10  10k  10m  1b", "\u2193 type below \u2193", ""), BlockType.OAK_SIGN, 4);
+                player.getScheduler().run(NeonOrder.plugin, task -> this.open(), null);
+            }, List.of("", "^^^^^^^^^^^^", "Set Price", "10  10k  10m  1b"), BlockType.OAK_SIGN);
             return;
         }
 

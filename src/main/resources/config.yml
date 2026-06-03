@@ -1,0 +1,263 @@
+
+# Your license key for NeonOrder
+license-key: NEON-OOOO-0000
+
+# Whether to let bStats collect data anonymously or not
+bstats: true
+
+# Whether to check for updates or not
+check-for-updates: true
+
+# Whether to log money changes of players or not
+log-transactions: true
+
+# After this amount of millisecond(s), the order will be expired
+expires-after: 604800000
+
+# This will be put at the beginning of the sort type that is being selected
+sort-prefix: <aqua>
+
+# Maximum amount of items to collect, this shouldn't be confused with max-collect-per-minute
+max-collect: 3400
+
+# The maximum amount of items a player can collect every minute
+# Setting this too high might allow players to lag the server with large orders
+# The 1-minute timer is global, not per-player.
+max-collect-per-minute: 10000
+
+# This defines how should two items to be similar.
+# If all the following data component types are equal on both items beside their item types, they are similar.
+# This similarity check happens when a player deliver an order, it accepts items in the delivery inventory that are similar to the one in the order
+# See a list of data components here, note that only use ones that exist on your server version: https://minecraft.wiki/w/Data_component_format#List_of_components
+similarity-check:
+- minecraft:enchantments
+- minecraft:bundle_contents
+- minecraft:container
+- minecraft:fireworks
+- minecraft:instrument
+- minecraft:potion_contents
+- minecraft:stored_enchantments
+- minecraft:max_stack_size
+- minecraft:custom_model_data
+- minecraft:ominous_bottle_amplifier
+- minecraft:damage
+- minecraft:custom_name
+- minecraft:item_model
+- minecraft:bundle_contents
+- minecraft:damage_type
+- minecraft:consumable
+messages:
+  create-order-success: <gray>Your order has been created
+  invalid-input: <red>Invalid number or format
+  delivery: <gray>You earned <green>$<money><gray> from delivering an order
+  receive-delivery: <aqua><deliverer> <gray>delivered you <aqua><amount> <item>
+  not-enough-money: <red>You do not have enough money
+  deliver-self: <red>You cannot deliver your own order
+  # Message for max-collect
+  exceeded-max-collect: <red>You are collecting too many items
+  # Message for max-collect-per-minute
+  collecting-too-fast: <red>You are collecting items too fast. Wait a minute...
+sounds:
+  next-page:
+    sound: minecraft:ui.button.click
+    volume: 1.0
+    pitch: 1.0
+  previous-page:
+    sound: minecraft:ui.button.click
+    volume: 1.0
+    pitch: 1.0
+  refresh:
+    sound: minecraft:ui.button.click
+    volume: 1.0
+    pitch: 1.0
+  sort:
+    sound: minecraft:ui.button.click
+    volume: 1.0
+    pitch: 1.0
+  new-order:
+    sound: minecraft:entity.villager.work_cartographer
+    volume: 1.0
+    pitch: 1.0
+  deliver:
+    sound: minecraft:entity.player.levelup
+    volume: 1.0
+    pitch: 2.0
+
+# How should different types of sorting appear
+sort-types:
+  most-money-per-item: Most Money Per Item
+  recently-listed: Recently Listed
+  most-delivered: Most Delivered
+  most-paid: Most Paid
+  a-z: A - Z
+  z-a: Z - A
+
+# How should different types of order status appear
+# They will be used with <order-status> placeholder
+order-status:
+  available: <gray>Expires after <day>d <hour>h <minute>m <second>s
+  expired: <red>Order Expired
+  completed: <green>Order Completed
+gui:
+  main:
+    title: Orders
+    order-lore:
+    - ''
+    - <#786500>$<paid><gray>/<#017800>$<total> <gray>Paid
+    - <#786500><delivered><gray>/<#017800><amount> <gray>Delivered
+    - <green>$<money-per> <white>each
+    - ''
+    - <white>Click to deliver <aqua><player><white>'s order
+    # This indicates the next sort type to select when switching to another one
+    # A_Z and Z_A sorts are not supported.
+    sorts-order:
+    - most-money-per-item
+    - recently-listed
+    - most-delivered
+    - most-paid
+    buttons:
+      refresh:
+        slot: 4
+        lore:
+        - <white>Click to refresh
+        display-name: <aqua>Refresh
+        type: minecraft:paper
+      your-orders:
+        slot: 6
+        lore:
+        - <white>Click to view your orders
+        display-name: <aqua>Your Orders
+        type: minecraft:chest
+      sort:
+        slot: 3
+        lore:
+        - ''
+        - <white> • <most-money-per-item>
+        - <white> • <recently-listed>
+        - <white> • <most-delivered>
+        - <white> • <most-paid>
+        display-name: <aqua>Sort
+        type: minecraft:hopper
+      back:
+        slot: 0
+        lore:
+        - <white>Click to go to the previous page
+        display-name: <aqua>Back
+        type: minecraft:arrow
+      next:
+        slot: 8
+        lore:
+        - <white>Click to go to the next page
+        display-name: <aqua>Next
+        type: minecraft:arrow
+      search:
+        slot: 5
+        lore:
+        - <white>Click to search
+        display-name: <aqua>Search
+        type: minecraft:oak_sign
+  your-orders:
+    title: Your Orders
+    order-lore:
+    - ''
+    - <#786500>$<paid><gray>/<#017800>$<total> <gray>Paid
+    - <#786500><delivered><gray>/<#017800><amount> <gray>Delivered
+    - <green>$<money-per> <white>each
+    - ''
+    - <order-status>
+    buttons:
+      new-order:
+        lore:
+        - <white>Click to create a new order
+        display-name: <aqua>New Order
+        type: minecraft:map
+  choose-item:
+    title: Choose Your Item
+    # Only A_Z and Z_A sorts are supported, don't put other sort types in here
+    sorts-order:
+    - a-z
+    - z-a
+    buttons:
+      back:
+        slot: 0
+        lore:
+        - <white>Click to go to the previous page
+        display-name: <aqua>Back
+        type: minecraft:arrow
+      next:
+        slot: 8
+        lore:
+        - <white>Click to go to the next page
+        display-name: <aqua>Next
+        type: minecraft:arrow
+      search:
+        slot: 5
+        lore:
+        - <white>Click to search
+        display-name: <aqua>Search
+        type: minecraft:oak_sign
+      sort:
+        slot: 3
+        lore:
+        - ''
+        - <white> • <a-z>
+        - <white> • <z-a>
+        display-name: <aqua>Sort
+        type: minecraft:hopper
+  search-sign:
+    type: minecraft:oak_sign
+    lines:
+    - ''
+    - ↑↑↑↑↑↑↑↑↑↑↑↑
+    - Search
+    - ''
+  delivery:
+    title: Delivering...
+    rows: 6
+  new-order:
+    title: Create A New Order
+    item-description: You're creating an order for this item
+    amount-label: Amount
+    money-per-label: Money Per Item
+    change-item-button: Change Item...
+    change-item-tooltip: Click to change the item
+    confirm-button: <green>Confirm
+    confirm-tooltip: Click to confirm the order
+    description-width: 210
+    input-width: 200
+    button-width: 150
+  confirm-delivery:
+    title: Confirm your Delivery
+    body: You are delivering
+    transaction-message: You will get <green>$<money><white> in return
+    confirm-button: <green>Confirm
+    confirm-tooltip: Click to confirm the delivery
+    cancel-button: <red>Cancel
+    cancel-tooltip: Click to cancel the delivery
+  manage-order:
+    title: Manage Order
+    body: You are managing this order
+    collect-items-button: Collect Items
+    collect-items-tooltip: Click to collect items from this order
+    cancel-order-button: Cancel Order
+    cancel-order-tooltip: Click to cancel the order
+    drop-button: Drop
+    drop-tooltip: Click to start dropping items (1k items/5s)
+    drop-status-title: <gradient:#f6d365:#fda085><bold>Dropping Items...
+    stop-drop-button: <red>Stop Drop
+  collect-items:
+    title: Collect Items
+    body: You are collecting items from this order. You can collect up to <aqua><in-storage>
+      <item>
+    amount-label: Amount
+    cancel-button: <red>Cancel
+    cancel-tooltip: Click to cancel
+    confirm-button: <green>Confirm
+    confirm-tooltip: Click to confirm
+  cancel-order:
+    title: Cancel Order
+    body: You are cancelling this order. It will be expired
+    cancel-button: <red>Cancel
+    cancel-tooltip: Click to cancel the cancellation of this order
+    confirm-button: <green>Confirm
+    confirm-tooltip: Click to confirm the cancellation of this order

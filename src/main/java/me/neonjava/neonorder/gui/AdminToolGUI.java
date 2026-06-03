@@ -37,14 +37,15 @@ public class AdminToolGUI {
 
     private static final List<ChestGui> blacklist = new ArrayList<>();
     private static final List<ChestGui> customItems = new ArrayList<>();
-//    private static DBManager db;
+    // private static DBManager db;
 
     // Using shared page amount but it's fine I guess
     private static int pageAmount;
 
     private static final Consumer<InventoryClickEvent> viewWiki = e -> {
         e.getWhoClicked().closeInventory();
-        e.getWhoClicked().sendRichMessage("<gray>>> <blue><u><click:open_url:'https://github.com/Imneonjava/NeonOrder/wiki/Blacklist-&-Custom-items'>Click here</click></u> <white>to view the wiki");
+        e.getWhoClicked().sendRichMessage(
+                "<gray>>> <blue><u><click:open_url:'https://github.com/Imneonjava/NeonOrder/wiki/Blacklist-&-Custom-items'>Click here</click></u> <white>to view the wiki");
     };
 
     private static final ItemStack next = ItemStack.of(Material.ARROW);
@@ -59,7 +60,8 @@ public class AdminToolGUI {
     private static Consumer<InventoryClickEvent> addCustomItem(int i) {
         return e -> {
             ItemStack clicked = e.getCurrentItem();
-            if (clicked == null || clicked.isEmpty()) return;
+            if (clicked == null || clicked.isEmpty())
+                return;
 
             plugin.getStorage().addCustomItem(clicked);
             createCustomItems();
@@ -68,44 +70,39 @@ public class AdminToolGUI {
 
     }
 
-
     public static void init() {
-//        db = plugin.getDbManager();
+        // db = plugin.getDbManager();
 
         next.editMeta(meta -> {
             meta.displayName(nameDeco("Next"));
             meta.lore(List.of(
                     Component.empty(),
-                    loreDeco("Click to go to the next page")
-            ));
+                    loreDeco("Click to go to the next page")));
         });
 
         previous.editMeta(meta -> {
             meta.displayName(nameDeco("Back"));
             meta.lore(List.of(
                     Component.empty(),
-                    loreDeco("Click to go to the previous page")
-            ));
+                    loreDeco("Click to go to the previous page")));
         });
 
         readmeBlacklist.editMeta(meta -> {
             meta.displayName(nameDeco("Blacklist Items"));
             meta.lore(List.of(
                     Component.empty(),
-                    loreDeco("View the wiki for usage")
-            ));
+                    loreDeco("View the wiki for usage")));
         });
 
         readmeCustomItems.editMeta(meta -> {
             meta.displayName(nameDeco("Custom Items"));
             meta.lore(List.of(
                     Component.empty(),
-                    loreDeco("View the wiki for usage")
-            ));
+                    loreDeco("View the wiki for usage")));
         });
 
-        createBlacklist();
-        createCustomItems();
+        blacklist.clear();
+        customItems.clear();
     }
 
     private static Component nameDeco(String name) {
@@ -122,7 +119,13 @@ public class AdminToolGUI {
         final Set<ItemStack> items = plugin.getDataCache().getBlacklist();
         pageAmount = ConvertUtils.ceil_div(items.size(), 45);
 
-        ChestGui page = new ChestGui(6, "Blacklisted Items");
+        ChestGui page;
+        try {
+            page = new ChestGui(6, "Blacklisted Items");
+        } catch (Throwable t) {
+            plugin.getLogger().warning("Skipping blacklist GUI creation on this server version: " + t.getMessage());
+            return;
+        }
         OutlinePane itemsPane = new OutlinePane(0, 0, 9, 5);
         StaticPane buttonsPane = new StaticPane(0, 5, 9, 1);
         addBlacklistButtons(0, buttonsPane);
@@ -139,7 +142,12 @@ public class AdminToolGUI {
                 page.addPane(buttonsPane);
                 blacklist.add(page);
 
-                page = new ChestGui(6, "Blacklisted Items");
+                try {
+                    page = new ChestGui(6, "Blacklisted Items");
+                } catch (Throwable t) {
+                    plugin.getLogger().warning("Skipping remaining blacklist GUI pages on this server version: " + t.getMessage());
+                    return;
+                }
                 itemsPane = new OutlinePane(0, 0, 9, 5);
                 buttonsPane = new StaticPane(0, 5, 9, 1);
                 addBlacklistButtons(i, buttonsPane);
@@ -150,12 +158,11 @@ public class AdminToolGUI {
             final int currentPage = i;
             itemsPane.addItem(new GuiItem(ConvertUtils.addLore(item.clone(), List.of(
                     "",
-                    "<white>Click to <red>remove<white> from blacklist"
-            )), e -> {
-                plugin.getStorage().removeBlacklist(item);
-                createBlacklist();
-                blacklist.get(Math.min(currentPage, blacklist.size() - 1)).show(e.getWhoClicked());
-            }));
+                    "<white>Click to <red>remove<white> from blacklist")), e -> {
+                        plugin.getStorage().removeBlacklist(item);
+                        createBlacklist();
+                        blacklist.get(Math.min(currentPage, blacklist.size() - 1)).show(e.getWhoClicked());
+                    }));
 
             cnt++;
         }
@@ -172,7 +179,13 @@ public class AdminToolGUI {
         final Set<Pair<ItemStack, String>> items = plugin.getDataCache().getCustomItems();
         pageAmount = ConvertUtils.ceil_div(items.size(), 45);
 
-        ChestGui page = new ChestGui(6, "Custom Items");
+        ChestGui page;
+        try {
+            page = new ChestGui(6, "Custom Items");
+        } catch (Throwable t) {
+            plugin.getLogger().warning("Skipping custom items GUI creation on this server version: " + t.getMessage());
+            return;
+        }
         OutlinePane itemsPane = new OutlinePane(0, 0, 9, 5);
         StaticPane buttonsPane = new StaticPane(0, 5, 9, 1);
         addCustomItemsButtons(0, buttonsPane);
@@ -191,7 +204,12 @@ public class AdminToolGUI {
                 page.addPane(buttonsPane);
                 customItems.add(page);
 
-                page = new ChestGui(6, "Custom Items");
+                try {
+                    page = new ChestGui(6, "Custom Items");
+                } catch (Throwable t) {
+                    plugin.getLogger().warning("Skipping remaining custom items GUI pages on this server version: " + t.getMessage());
+                    return;
+                }
                 itemsPane = new OutlinePane(0, 0, 9, 5);
                 buttonsPane = new StaticPane(0, 5, 9, 1);
                 addCustomItemsButtons(i, buttonsPane);
@@ -205,73 +223,91 @@ public class AdminToolGUI {
             final GuiItem guiItem = new GuiItem(ConvertUtils.addLore(item.first().clone(), List.of(
                     "",
                     "<white>Left-click to <red>remove<white> from custom items list",
-                    "<white>Right-click to <yellow>edit<white> this item"
-            )), e -> {
-                switch (e.getClick()) {
-                    case LEFT -> {
-                        plugin.getStorage().removeCustomItem(item.first());
-                        createCustomItems();
-                        customItems.get(Math.min(currentPage, customItems.size() - 1)).show(e.getWhoClicked());
-                    }
-                    case RIGHT -> {
-                        final List<DialogBody> bodies = new LinkedList<>();
-                        int j = 1;
-                        final String[] searches = item.second().split(",");
-                        for (String s : searches) {
-                            if (s.isEmpty()) continue;
-                            bodies.add(DialogBody.plainMessage(Component.text(j++ + ". " + s)));
-                        }
-                        bodies.addFirst(DialogBody.item(item.first()).description(DialogBody.plainMessage(Component.text("Search aliases of this custom item:"))).build());
+                    "<white>Right-click to <yellow>edit<white> this item")), e -> {
+                        switch (e.getClick()) {
+                            case LEFT -> {
+                                plugin.getStorage().removeCustomItem(item.first());
+                                createCustomItems();
+                                customItems.get(Math.min(currentPage, customItems.size() - 1)).show(e.getWhoClicked());
+                            }
+                            case RIGHT -> {
+                                final List<DialogBody> bodies = new LinkedList<>();
+                                int j = 1;
+                                final String[] searches = item.second().split(",");
+                                for (String s : searches) {
+                                    if (s.isEmpty())
+                                        continue;
+                                    bodies.add(DialogBody.plainMessage(Component.text(j++ + ". " + s)));
+                                }
+                                bodies.addFirst(DialogBody.item(item.first())
+                                        .description(DialogBody
+                                                .plainMessage(Component.text("Search aliases of this custom item:")))
+                                        .build());
 
-                        final Dialog dialog = Dialog.create(builder -> builder.empty()
-                                .base(DialogBase.builder(Component.text("Edit custom item"))
-                                        .body(bodies)
-                                        .inputs(
-                                                List.of(
-                                                        DialogInput.singleOption("choice", Component.text("Action"), List.of(
-                                                                SingleOptionDialogInput.OptionEntry.create("add", Component.text("Add Search"), true),
-                                                                SingleOptionDialogInput.OptionEntry.create("remove", Component.text("Remove Search"), false)
-                                                        )).build(),
-                                                        DialogInput.text("text", Component.text("Enter text or number")).build()
-                                                )
-                                        )
-                                        .build()
-                                )
-                                .type(DialogType.confirmation(
-                                        ActionButton.builder(Component.text("Confirm", NamedTextColor.GREEN))
-                                                .action(DialogAction.customClick((v, player) -> {
-                                                    final String choice = v.getText("choice");
-                                                    final String text = v.getText("text");
-                                                    if (text == null) return;
-                                                    switch (choice) {
-                                                        case "add" -> item.second += "," + text.trim().toLowerCase().replaceAll(" ", "_");
+                                final Dialog dialog = Dialog.create(builder -> builder.empty()
+                                        .base(DialogBase.builder(Component.text("Edit custom item"))
+                                                .body(bodies)
+                                                .inputs(
+                                                        List.of(
+                                                                DialogInput.singleOption("choice",
+                                                                        Component.text("Action"), List.of(
+                                                                                SingleOptionDialogInput.OptionEntry
+                                                                                        .create("add",
+                                                                                                Component.text(
+                                                                                                        "Add Search"),
+                                                                                                true),
+                                                                                SingleOptionDialogInput.OptionEntry
+                                                                                        .create("remove", Component
+                                                                                                .text("Remove Search"),
+                                                                                                false)))
+                                                                        .build(),
+                                                                DialogInput
+                                                                        .text("text",
+                                                                                Component.text("Enter text or number"))
+                                                                        .build()))
+                                                .build())
+                                        .type(DialogType.confirmation(
+                                                ActionButton.builder(Component.text("Confirm", NamedTextColor.GREEN))
+                                                        .action(DialogAction.customClick((v, player) -> {
+                                                            final String choice = v.getText("choice");
+                                                            final String text = v.getText("text");
+                                                            if (text == null)
+                                                                return;
+                                                            switch (choice) {
+                                                                case "add" -> item.second += "," + text.trim()
+                                                                        .toLowerCase().replaceAll(" ", "_");
 
-                                                        case "remove" -> {
-                                                            val indices = text.trim().split(",");
-                                                            final List<String> toRev = new ArrayList<>();
-                                                            for (String index : indices) {
-                                                                try {
-                                                                    toRev.add(searches[Integer.parseInt(index)]);
-                                                                } catch (Exception ignored) {}
+                                                                case "remove" -> {
+                                                                    val indices = text.trim().split(",");
+                                                                    final List<String> toRev = new ArrayList<>();
+                                                                    for (String index : indices) {
+                                                                        try {
+                                                                            toRev.add(
+                                                                                    searches[Integer.parseInt(index)]);
+                                                                        } catch (Exception ignored) {
+                                                                        }
+                                                                    }
+                                                                    val searchList = new ArrayList<>(List.of(searches));
+                                                                    searchList.removeAll(toRev);
+                                                                    item.second = String.join(",", searchList);
+                                                                }
+
+                                                                case null, default -> {
+                                                                }
                                                             }
-                                                            val searchList = new ArrayList<>(List.of(searches));
-                                                            searchList.removeAll(toRev);
-                                                            item.second = String.join(",", searchList);
-                                                        }
-
-                                                        case null, default -> {}
-                                                    }
-                                                    plugin.getStorage().updateCustomItemSearch(item);
-                                                }, ClickCallback.Options.builder().build()))
-                                                .build(),
-                                        ActionButton.builder(Component.text("Cancel", NamedTextColor.RED)).build()
-                                ))
+                                                            plugin.getStorage().updateCustomItemSearch(item);
+                                                        }, ClickCallback.Options.builder().build()))
+                                                        .build(),
+                                                ActionButton.builder(Component.text("Cancel", NamedTextColor.RED))
+                                                        .build()))
 
                         );
-                        e.getWhoClicked().showDialog(dialog);
-                    }
-                }
-            });
+                                e.getWhoClicked().showDialog(dialog);
+                            }
+                            default -> {
+                            }
+                        }
+                    });
 
             itemsPane.addItem(guiItem);
 
@@ -286,20 +322,25 @@ public class AdminToolGUI {
     @SuppressWarnings("UnstableApiUsage")
     public static Dialog createEditOrder(Order order) {
 
-        val body = DialogBody.item(order.getItem()).description(DialogBody.plainMessage(Component.text("You're editing this order"))).build();
+        val body = DialogBody.item(order.getItem())
+                .description(DialogBody.plainMessage(Component.text("You're editing this order"))).build();
 
         val option = DialogInput.singleOption("option", Component.text("Action"), List.of(
                 SingleOptionDialogInput.OptionEntry.create("change_amount", Component.text("Change Amount"), true),
-                SingleOptionDialogInput.OptionEntry.create("change_delivered", Component.text("Change Delivered"), false),
-                SingleOptionDialogInput.OptionEntry.create("change_in_storage", Component.text("Change In Storage"), false),
-                SingleOptionDialogInput.OptionEntry.create("change_money_per", Component.text("Change Money Per"), false)
-        )).build();
+                SingleOptionDialogInput.OptionEntry.create("change_delivered", Component.text("Change Delivered"),
+                        false),
+                SingleOptionDialogInput.OptionEntry.create("change_in_storage", Component.text("Change In Storage"),
+                        false),
+                SingleOptionDialogInput.OptionEntry.create("change_money_per", Component.text("Change Money Per"),
+                        false)))
+                .build();
 
         val value = DialogInput.text("value", Component.text("Value")).build();
 
         val confirm = ActionButton.builder(Component.text("Confirm", NamedTextColor.GREEN))
                 .action(DialogAction.customClick((view, player) -> {
-                    if (!(player instanceof Player p)) return;
+                    if (!(player instanceof Player p))
+                        return;
                     val chosen = view.getText("option");
                     val num = ConvertUtils.formatNumber(view.getText("value"));
                     final int intNum = (int) num;
@@ -328,30 +369,52 @@ public class AdminToolGUI {
                 .base(DialogBase.builder(Component.text("Edit this order"))
                         .body(List.of(body))
                         .inputs(List.of(option, value))
-                        .build()
-                )
-                .type(DialogType.confirmation(confirm, cancel))
-        );
+                        .build())
+                .type(DialogType.confirmation(confirm, cancel)));
     }
 
     public static void openBlacklist(Player p) {
-        blacklist.getFirst().show(p);
+        try {
+            if (blacklist.isEmpty()) createBlacklist();
+            blacklist.getFirst().show(p);
+        } catch (Throwable t) {
+            p.sendRichMessage("<red>This admin GUI is not supported on this server version.");
+            plugin.getLogger().warning("Could not open NeonOrder blacklist GUI: " + t.getMessage());
+        }
     }
 
     public static void openCustomItems(Player p) {
-        customItems.getFirst().show(p);
+        try {
+            if (customItems.isEmpty()) createCustomItems();
+            customItems.getFirst().show(p);
+        } catch (Throwable t) {
+            p.sendRichMessage("<red>This admin GUI is not supported on this server version.");
+            plugin.getLogger().warning("Could not open NeonOrder custom items GUI: " + t.getMessage());
+        }
     }
 
     private static void addBlacklistButtons(int i, final StaticPane pane) {
-        if (i > 0) pane.addItem(new GuiItem(previous, e -> blacklist.get(Math.min(i - 1, blacklist.size() - 1)).show(e.getWhoClicked())), 0, 0);
-        if (i < pageAmount - 1) pane.addItem(new GuiItem(next, e -> blacklist.get(Math.min(i + 1, blacklist.size() - 1)).show(e.getWhoClicked())), 8, 0);
+        if (i > 0)
+            pane.addItem(new GuiItem(previous,
+                    e -> blacklist.get(Math.min(i - 1, blacklist.size() - 1)).show(e.getWhoClicked())), 0, 0);
+        if (i < pageAmount - 1)
+            pane.addItem(new GuiItem(next,
+                    e -> blacklist.get(Math.min(i + 1, blacklist.size() - 1)).show(e.getWhoClicked())), 8, 0);
 
         pane.addItem(itemRmBlacklist, 4, 0);
     }
 
     private static void addCustomItemsButtons(int i, final StaticPane pane) {
-        if (i > 0) pane.addItem(new GuiItem(previous, e -> customItems.get(Math.min(i - 1, customItems.size() - 1)).show(e.getWhoClicked())), 0, 0);
-        if (i < pageAmount - 1) pane.addItem(new GuiItem(next, e -> customItems.get(Math.min(i + 1, customItems.size() - 1)).show(e.getWhoClicked())), 8, 0);
+        if (i > 0)
+            pane.addItem(
+                    new GuiItem(previous,
+                            e -> customItems.get(Math.min(i - 1, customItems.size() - 1)).show(e.getWhoClicked())),
+                    0, 0);
+        if (i < pageAmount - 1)
+            pane.addItem(
+                    new GuiItem(next,
+                            e -> customItems.get(Math.min(i + 1, customItems.size() - 1)).show(e.getWhoClicked())),
+                    8, 0);
 
         pane.addItem(itemRmCustomItems, 4, 0);
     }

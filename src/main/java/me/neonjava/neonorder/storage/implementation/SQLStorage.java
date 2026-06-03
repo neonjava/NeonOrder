@@ -24,6 +24,7 @@ import static me.neonjava.neonorder.load.NeonOrder.plugin;
 public class SQLStorage extends Storage {
 
     // Universal Statements
+    private static final String LEGACY_TABLE_PREFIX = "orderium_";
     private final String CREATE_TRANSACTION_TABLE = "CREATE TABLE IF NOT EXISTS " + TRANSACTION_TABLE + " (time BIGINT PRIMARY KEY, player_most BIGINT, player_least BIGINT, `before` DOUBLE, amount DOUBLE, `after` DOUBLE)";
     private final String CREATE_ORDER = "INSERT INTO " + ORDER_TABLE + " (owner_most, owner_least, item, money_per, amount, expires_at) VALUES (?, ?, ?, ?, ?, ?)";
     private final String UPDATE_ORDER = "UPDATE " + ORDER_TABLE + " SET amount = ?, money_per = ?, delivered = ?, in_storage = ? WHERE id = ?";
@@ -36,6 +37,7 @@ public class SQLStorage extends Storage {
     private final String CREATE_ORDER_TABLE;
 
     private final HikariDataSource data;
+    private final StorageMethod method;
 
     public static SQLStorage mysql() {
         return new SQLStorage(StorageMethod.MYSQL, "jdbc:mysql://" + configs.getRemoteAddress() + "/" + configs.getDatabaseName(), configs.getDbUsername(), configs.getDbPassword());
@@ -51,6 +53,7 @@ public class SQLStorage extends Storage {
 
     private SQLStorage(StorageMethod method, String jdbcUrl, String username, String password) {
         super();
+        this.method = method;
         val conf = new HikariConfig();
         conf.setPoolName("orders data pool");
         conf.setJdbcUrl(jdbcUrl);
@@ -69,7 +72,9 @@ public class SQLStorage extends Storage {
         }
 
         createTables();
-        plugin.getDataCache().setOrders(loadOrders());
+        val orders = loadOrders();
+        ConvertUtils.cacheOwnerNames(orders);
+        plugin.getDataCache().setOrders(orders);
     }
 
     @Override
@@ -343,10 +348,51 @@ public class SQLStorage extends Storage {
         ) {
             createOrderTable.executeUpdate();
             createTransactionTable.executeUpdate();
+            if (method == StorageMethod.SQLITE) migrateLegacyTables(connection);
         } catch (SQLException e) {
             Log.error("Failed to create tables", e);
         }
     }
 
+    private void migrateLegacyTables(java.sql.Connection connection) throws SQLException {
+        val legacyOrderTable = LEGACY_TABLE_PREFIX + "orders";
+        val legacyTransactionTable = LEGACY_TABLE_PREFIX + "transactions";
+
+        if (tableExists(connection, legacyOrderTable) && tableIsEmpty(connection, ORDER_TABLE)) {
+            try (val migrateOrders = connection.prepareStatement(
+                    "INSERT INTO " + ORDER_TABLE + " (id, owner_most, owner_least, item, money_per, amount, delivered, in_storage, expires_at) " +
+                            "SELECT id, owner_most, owner_least, item, money_per, amount, delivered, in_storage, expires_at FROM " + legacyOrderTable
+            )) {
+                val migrated = migrateOrders.executeUpdate();
+                if (migrated > 0) Log.info("Migrated " + migrated + " legacy orders from " + legacyOrderTable + ".");
+            }
+        }
+
+        if (tableExists(connection, legacyTransactionTable) && tableIsEmpty(connection, TRANSACTION_TABLE)) {
+            try (val migrateTransactions = connection.prepareStatement(
+                    "INSERT INTO " + TRANSACTION_TABLE + " (time, player_most, player_least, `before`, amount, `after`) " +
+                            "SELECT time, player_most, player_least, `before`, amount, `after` FROM " + legacyTransactionTable
+            )) {
+                val migrated = migrateTransactions.executeUpdate();
+                if (migrated > 0) Log.info("Migrated " + migrated + " legacy transactions from " + legacyTransactionTable + ".");
+            }
+        }
+    }
+
+    private boolean tableExists(java.sql.Connection connection, String tableName) throws SQLException {
+        try (val table = connection.prepareStatement("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?")) {
+            table.setString(1, tableName);
+            try (val result = table.executeQuery()) {
+                return result.next();
+            }
+        }
+    }
+
+    private boolean tableIsEmpty(java.sql.Connection connection, String tableName) throws SQLException {
+        try (val count = connection.prepareStatement("SELECT COUNT(*) FROM " + tableName);
+             val result = count.executeQuery()) {
+            return !result.next() || result.getLong(1) == 0;
+        }
+    }
 
 }

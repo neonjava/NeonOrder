@@ -1,9 +1,9 @@
 package me.neonjava.neonorder.obj;
 
-import com.github.retrooper.packetevents.util.Vector3i;
+import io.papermc.paper.math.BlockPosition;
 import org.bukkit.block.BlockType;
 
 import java.util.function.Consumer;
 
-public record SignInfo(Consumer<String> action, BlockType signBlock, int line, Vector3i pos) {
+public record SignInfo(Consumer<String> action, BlockType signBlock, BlockPosition pos) {
 }

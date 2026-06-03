@@ -1,7 +1,6 @@
 package me.neonjava.neonorder.load;
 
-import com.github.retrooper.packetevents.PacketEvents;
-import com.github.retrooper.packetevents.event.PacketListenerPriority;
+
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
@@ -29,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 public final class NeonOrder extends JavaPlugin {
     public static NeonOrder plugin;
     public static boolean isFolia;
+    public static boolean hasDialogAPI;
     public static final DialogListener DIALOG_LISTENER = new DialogListener();
     public static final DisconnectListener DISCONNECT_LISTENER = new DisconnectListener();
 
@@ -38,6 +38,7 @@ public final class NeonOrder extends JavaPlugin {
     private Storage storage;
     private DataCache dataCache;
     private Economy econ;
+
     public final MiniMessage mm = MiniMessage.miniMessage();
     public int VERSION = -1;
 
@@ -67,7 +68,6 @@ public final class NeonOrder extends JavaPlugin {
 
     @Override
     public void onLoad() {
-        PacketEvents.getAPI().getEventManager().registerListener(new SignGUI(this), PacketListenerPriority.NORMAL);
     }
 
     @Override
@@ -75,8 +75,9 @@ public final class NeonOrder extends JavaPlugin {
         plugin = this;
         Log.init();
         isFolia = isFolia();
+        hasDialogAPI = hasDialogAPI();
         if (!setupEconomy()) {
-            Log.warn("NeonOrder disabled due to no Vault dependency found!");
+            Log.warn("NeonOrder disabled because Vault has no economy provider.");
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
@@ -87,12 +88,20 @@ public final class NeonOrder extends JavaPlugin {
         saveResource("modified_items.db", false);
         saveResource("messages.yml", false);
 
-        if (isFolia)
-            new IFFolia(this);
+        if (isFolia) {
+            try {
+                new IFFolia(this);
+            } catch (Throwable t) {
+                Log.warn("InventoryFramework Folia hook could not be installed on this server; continuing with the default GUI listener.");
+            }
+        }
 
         Log.info("Initializing data cache and configurations...");
         dataCache = new DataCache();
         configs = new ConfigCache(this);
+
+        Log.info("Verifying NeonLock License...");
+        new NeonLicense(this, configs.getLicenseKey()).verify();
 
         Log.info("Connecting to storage (" + configs.getStorageMethod() + ")...");
         Storage.init();
@@ -142,6 +151,13 @@ public final class NeonOrder extends JavaPlugin {
             }
 
         }, 1, 1, TimeUnit.MINUTES);
+
+        Bukkit.getPluginManager().registerEvents(new SignGUI(this), this);
+    }
+
+    @Override
+    public void onDisable() {
+        SignGUI.shutdown();
     }
 
     public Storage createStorage() {
@@ -174,6 +190,15 @@ public final class NeonOrder extends JavaPlugin {
     private static boolean isFolia() {
         try {
             Class.forName("io.papermc.paper.threadedregions.RegionizedServer");
+            return true;
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
+    }
+
+    private static boolean hasDialogAPI() {
+        try {
+            Class.forName("io.papermc.paper.dialog.Dialog");
             return true;
         } catch (ClassNotFoundException e) {
             return false;
