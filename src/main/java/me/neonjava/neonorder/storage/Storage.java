@@ -167,10 +167,6 @@ public abstract class Storage {
         }
         @SuppressWarnings("deprecation")
         val dataVer = Bukkit.getUnsafe().getDataVersion();
-        val RELEASE_1_21_7_DATA_VERSION = 4438;
-        if (dataVer < RELEASE_1_21_7_DATA_VERSION) {
-            throw new RuntimeException("Server running version older than 1.21.7, which is not supported.");
-        }
         int maxVer = -1;
         for (int ver : dataVersions) {
             if (ver > maxVer && ver <= dataVer) maxVer = ver;
@@ -180,8 +176,21 @@ public abstract class Storage {
             }
         }
         if (plugin.VERSION == -1) {
-            Log.warn("No data version in the item database matches your server data version! Using the latest compatible one...");
-            plugin.VERSION = maxVer;
+            if (maxVer != -1) {
+                plugin.VERSION = maxVer;
+            } else {
+                int closestVer = -1;
+                int minDistance = Integer.MAX_VALUE;
+                for (int ver : dataVersions) {
+                    int dist = Math.abs(ver - dataVer);
+                    if (dist < minDistance) {
+                        minDistance = dist;
+                        closestVer = ver;
+                    }
+                }
+                plugin.VERSION = closestVer;
+            }
+            Log.warn("No data version in the item database matches your server data version! Using the closest compatible one: " + plugin.VERSION);
         }
 
         val ITEMS_TABLE_NAME = "items_" + plugin.VERSION;
