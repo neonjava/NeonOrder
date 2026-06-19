@@ -214,7 +214,10 @@ public abstract class Storage {
             val raw = getItems.executeQuery();
 
             while (raw.next()) {
-                items.add(ItemStack.deserializeBytes(raw.getBytes(1)));
+                ItemStack deserialized = ItemStack.deserializeBytes(raw.getBytes(1));
+                if (deserialized != null && deserialized.getType() != null) {
+                    items.add(new ItemStack(deserialized.getType()));
+                }
             }
 
         } catch (SQLException e) {
