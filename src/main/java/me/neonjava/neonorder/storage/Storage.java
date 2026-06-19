@@ -178,8 +178,6 @@ public abstract class Storage {
         } catch (SQLException e) {
             Log.error("Failed to load data versions", e);
         }
-        @SuppressWarnings("deprecation")
-        val dataVer = Bukkit.getUnsafe().getDataVersion();
         int maxVer = -1;
         for (int ver : dataVersions) {
             if (ver > maxVer && ver <= dataVer) maxVer = ver;
