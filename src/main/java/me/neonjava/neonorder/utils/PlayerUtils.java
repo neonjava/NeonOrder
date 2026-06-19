@@ -111,4 +111,35 @@ public class PlayerUtils {
         PlayerUtils.openGui(p, previousPage);
         PlayerUtils.playSound(p, cache.getPreviousPageSound());
     }
+
+    public static int getPlayerProtocolVersion(Player player) {
+        try {
+            if (Bukkit.getPluginManager().isPluginEnabled("ViaVersion")) {
+                Object viaApi = Class.forName("com.viaversion.viaversion.api.Via").getMethod("getAPI").invoke(null);
+                if (viaApi != null) {
+                    Object versionObj = viaApi.getClass().getMethod("getPlayerVersion", java.util.UUID.class).invoke(viaApi, player.getUniqueId());
+                    if (versionObj instanceof Number) {
+                        return ((Number) versionObj).intValue();
+                    }
+                }
+            }
+        } catch (Throwable ignored) {}
+        try {
+            if (Bukkit.getPluginManager().isPluginEnabled("ProtocolLib")) {
+                Object protocolManager = Class.forName("com.comphenix.protocol.ProtocolLibrary").getMethod("getProtocolManager").invoke(null);
+                if (protocolManager != null) {
+                    Object versionObj = protocolManager.getClass().getMethod("getProtocolVersion", Player.class).invoke(protocolManager, player);
+                    if (versionObj instanceof Number) {
+                        return ((Number) versionObj).intValue();
+                    }
+                }
+            }
+        } catch (Throwable ignored) {}
+        try {
+            if (player instanceof com.destroystokyo.paper.network.NetworkClient) {
+                return ((com.destroystokyo.paper.network.NetworkClient) player).getProtocolVersion();
+            }
+        } catch (Throwable ignored) {}
+        return -1;
+    }
 }
