@@ -141,6 +141,19 @@ public abstract class Storage {
      * @return the default items
      */
     private Collection<ItemStack> loadItems() {
+        @SuppressWarnings("deprecation")
+        val dataVer = Bukkit.getUnsafe().getDataVersion();
+        if (dataVer < 4438) {
+            val items = new HashSet<ItemStack>();
+            for (org.bukkit.Material mat : org.bukkit.Material.values()) {
+                if (!mat.isLegacy() && mat.isItem() && !mat.isAir()) {
+                    items.add(new ItemStack(mat));
+                }
+            }
+            plugin.VERSION = dataVer;
+            Log.info("Generated " + items.size() + " items from local Material registry for compatibility with Minecraft < 1.21.7 (detected version: " + dataVer + ").");
+            return items;
+        }
 
         val itemConfig = new HikariConfig();
         itemConfig.setPoolName("items pool");
