@@ -143,6 +143,7 @@ public final class NeonOrder extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(DIALOG_LISTENER, this);
         Bukkit.getPluginManager().registerEvents(new me.neonjava.neonorder.listener.BedrockMenuListener(), this);
         Bukkit.getPluginManager().registerEvents(DISCONNECT_LISTENER, this);
+        Bukkit.getPluginManager().registerEvents(new AnvilInput(), this);
 
         Bukkit.getAsyncScheduler().runAtFixedRate(this, t -> {
 
