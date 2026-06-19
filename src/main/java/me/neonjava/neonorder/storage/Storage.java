@@ -143,87 +143,14 @@ public abstract class Storage {
     private Collection<ItemStack> loadItems() {
         @SuppressWarnings("deprecation")
         val dataVer = Bukkit.getUnsafe().getDataVersion();
-        if (dataVer < 4438) {
-            val items = new HashSet<ItemStack>();
-            for (org.bukkit.Material mat : org.bukkit.Material.values()) {
-                if (!mat.isLegacy() && mat.isItem() && !mat.isAir()) {
-                    items.add(new ItemStack(mat));
-                }
-            }
-            plugin.VERSION = dataVer;
-            Log.info("Generated " + items.size() + " items from local Material registry for compatibility with Minecraft < 1.21.7 (detected version: " + dataVer + ").");
-            return items;
-        }
-
-        val itemConfig = new HikariConfig();
-        itemConfig.setPoolName("items pool");
-        itemConfig.setJdbcUrl("jdbc:sqlite:" + dataDir + File.separator + "items.db");
-        val itemDataSource = new HikariDataSource(itemConfig);
-
-        final List<Integer> dataVersions = new ArrayList<>();
-
-        try (
-                val connection = itemDataSource.getConnection();
-                val getDataVersions = connection.prepareStatement("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
-        ) {
-            val raw = getDataVersions.executeQuery();
-
-            while (raw.next()) {
-                final String sName = raw.getString("name");
-                if (!sName.startsWith("items_")) continue;
-                try {
-                    dataVersions.add(Integer.parseInt(sName.replace("items_", "")));
-                } catch (Exception ignored) {}
-            }
-        } catch (SQLException e) {
-            Log.error("Failed to load data versions", e);
-        }
-        int maxVer = -1;
-        for (int ver : dataVersions) {
-            if (ver > maxVer && ver <= dataVer) maxVer = ver;
-            if (dataVer == ver) {
-                plugin.VERSION = ver;
-                break;
-            }
-        }
-        if (plugin.VERSION == -1) {
-            if (maxVer != -1) {
-                plugin.VERSION = maxVer;
-            } else {
-                int closestVer = -1;
-                int minDistance = Integer.MAX_VALUE;
-                for (int ver : dataVersions) {
-                    int dist = Math.abs(ver - dataVer);
-                    if (dist < minDistance) {
-                        minDistance = dist;
-                        closestVer = ver;
-                    }
-                }
-                plugin.VERSION = closestVer;
-            }
-            Log.warn("No data version in the item database matches your server data version! Using the closest compatible one: " + plugin.VERSION);
-        }
-
-        val ITEMS_TABLE_NAME = "items_" + plugin.VERSION;
         val items = new HashSet<ItemStack>();
-
-        try (
-                val connection = itemDataSource.getConnection();
-                val getItems = connection.prepareStatement("SELECT * FROM " + ITEMS_TABLE_NAME)
-                ) {
-            val raw = getItems.executeQuery();
-
-            while (raw.next()) {
-                ItemStack deserialized = ItemStack.deserializeBytes(raw.getBytes(1));
-                if (deserialized != null && deserialized.getType() != null) {
-                    items.add(new ItemStack(deserialized.getType()));
-                }
+        for (org.bukkit.Material mat : org.bukkit.Material.values()) {
+            if (!mat.isLegacy() && mat.isItem() && !mat.isAir()) {
+                items.add(new ItemStack(mat));
             }
-
-        } catch (SQLException e) {
-            Log.error("Failed to load items", e);
         }
-        itemDataSource.close();
+        plugin.VERSION = dataVer;
+        Log.info("Generated " + items.size() + " items dynamically from Material registry (data version: " + dataVer + ").");
         return items;
     }
 
