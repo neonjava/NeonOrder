@@ -61,7 +61,12 @@ public class OrderConfigMenu implements InventoryHolder {
 
         // Slot 22: Confirm (Lime Glass)
         inventory.setItem(22, create(Material.LIME_STAINED_GLASS_PANE, "§a§l✔ Confirm Order",
-                "§7Click to place the order."));
+                "§7Click to place the order.",
+                "",
+                "§7Order Summary:",
+                " §8• §7Amount: §f" + amount + " items",
+                " §8• §7Price per item: §e$" + price,
+                " §8• §6Total Cost: §e$" + (amount * price)));
     }
 
     private ItemStack create(Material mat, String name, String... lore) {
@@ -86,23 +91,23 @@ public class OrderConfigMenu implements InventoryHolder {
     public void handle(int slot) {
         if (slot == 11) { // Amount
             player.closeInventory();
-            SignGUI.newSession(player, text -> {
+            AnvilInput.open(player, "Set Amount", String.valueOf(this.amount), text -> {
                 double val = ConvertUtils.formatNumber(text);
                 if (val > 0)
                     this.amount = (int) val;
                 player.getScheduler().run(NeonOrder.plugin, task -> this.open(), null);
-            }, List.of("", "^^^^^^^^^^^^", "Set Amount", "10  10k  10m  1b"), BlockType.OAK_SIGN);
+            });
             return;
         }
 
         if (slot == 15) { // Price
             player.closeInventory();
-            SignGUI.newSession(player, text -> {
+            AnvilInput.open(player, "Set Price", String.valueOf(this.price), text -> {
                 double val = ConvertUtils.formatNumber(text);
                 if (val > 0)
                     this.price = val;
                 player.getScheduler().run(NeonOrder.plugin, task -> this.open(), null);
-            }, List.of("", "^^^^^^^^^^^^", "Set Price", "10  10k  10m  1b"), BlockType.OAK_SIGN);
+            });
             return;
         }
 
