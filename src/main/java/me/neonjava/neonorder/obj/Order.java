@@ -168,6 +168,7 @@ public class Order implements me.neonjava.neonorder.api.Order {
             this.expiresAt = System.currentTimeMillis() - 1;
             p.getScheduler().run(plugin, task -> {
                 EconUtils.addMoney(Bukkit.getOfflinePlayer(getOwnerUniqueId()), payBack);
+                p.sendRichMessage("<green>Order cancelled! Refunded <gold>$" + ConvertUtils.formatNumber(payBack) + "</gold>.");
                 YourOrderGUI.open(p);
             }, null);
         });
