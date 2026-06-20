@@ -55,8 +55,8 @@ public class OrderConfigMenu implements InventoryHolder {
         inventory.setItem(13, display);
 
         // Slot 15: Set Price (Sign Input)
-        inventory.setItem(15, create(Material.GOLD_INGOT, "§6§lSet Price: §f$" + price,
-                "§7Click to enter price via sign.",
+        inventory.setItem(15, create(Material.GOLD_INGOT, "§6§lSet Price/Ea: §f$" + price,
+                "§7Click to enter price per item via sign.",
                 "§7Format: §e10  10k  10m  1b"));
 
         // Slot 22: Confirm (Lime Glass)
