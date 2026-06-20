@@ -271,14 +271,18 @@ public class Order implements me.neonjava.neonorder.api.Order {
 
         // Broadcast new order creation
         owner.getServer().getLogger().info("[Order] Broadcasting new order from " + owner.getName());
-        owner.getServer().sendMessage(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize(
+        net.kyori.adventure.text.Component broadcastMsg = net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize(
                 "<gray>Player <white>" + owner.getName() + " <gray>has set an order for <white>" + amount
                         + "x <item><gray>!",
                 net.kyori.adventure.text.minimessage.tag.resolver.Placeholder.component("item",
                         (item.getItemMeta() != null && item.getItemMeta().hasDisplayName()
                                 ? item.getItemMeta().displayName()
                                 : net.kyori.adventure.text.Component
-                                        .translatable(item.getType().getItemTranslationKey())))));
+                                        .translatable(item.getType().getItemTranslationKey()))));
+        owner.getServer().sendMessage(broadcastMsg);
+        for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+            onlinePlayer.sendActionBar(broadcastMsg);
+        }
 
         return Response.SUCCESS;
     }
