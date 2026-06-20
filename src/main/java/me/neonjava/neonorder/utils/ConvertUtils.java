@@ -317,7 +317,9 @@ public class ConvertUtils {
     }
 
     public static double formatNumber(String s) {
-        if (s == null || s.isEmpty()) return -1;
+        if (s == null) return -1;
+        s = s.trim();
+        if (s.isEmpty()) return -1;
         try {
             final double num = Double.parseDouble(s);
             if (num < 1) return -1;
