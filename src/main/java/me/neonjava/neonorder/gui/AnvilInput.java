@@ -92,13 +92,11 @@ public class AnvilInput implements Listener {
             String resultText = null;
             if (event.getInventory() instanceof AnvilInventory anvilInv) {
                 resultText = anvilInv.getRenameText();
-                NeonOrder.plugin.getLogger().info("[AnvilInput] getRenameText() returned: " + resultText);
             }
             if (resultText == null) {
                 ItemStack item = event.getInventory().getItem(2);
                 if (item != null && item.hasItemMeta()) {
                     resultText = item.getItemMeta().getDisplayName();
-                    NeonOrder.plugin.getLogger().info("[AnvilInput] fallback getDisplayName() returned: " + resultText);
                 }
             }
             if (resultText == null) resultText = "";
@@ -109,7 +107,6 @@ public class AnvilInput implements Listener {
             p.setExp(session.originalExp);
             
             final String finalResult = resultText;
-            NeonOrder.plugin.getLogger().info("[AnvilInput] Final result text callback accepted: " + finalResult);
             session.callback.accept(finalResult);
         }
     }

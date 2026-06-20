@@ -11,7 +11,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.logging.Level;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -121,35 +120,25 @@ public class PlayerUtils {
                     Class<?> viaApiClass = Class.forName("com.viaversion.viaversion.api.ViaAPI");
                     Object versionObj = viaApiClass.getMethod("getPlayerVersion", java.util.UUID.class).invoke(viaApi, player.getUniqueId());
                     if (versionObj instanceof Number) {
-                        int ver = ((Number) versionObj).intValue();
-                        NeonOrder.plugin.getLogger().info("[PlayerUtils] ViaVersion detected version: " + ver);
-                        return ver;
+                        return ((Number) versionObj).intValue();
                     }
                 }
             }
-        } catch (Throwable t) {
-            NeonOrder.plugin.getLogger().log(Level.WARNING, "[PlayerUtils] ViaVersion version check failed", t);
-        }
+        } catch (Throwable ignored) {}
         try {
             if (Bukkit.getPluginManager().isPluginEnabled("ProtocolLib")) {
                 Object protocolManager = Class.forName("com.comphenix.protocol.ProtocolLibrary").getMethod("getProtocolManager").invoke(null);
                 if (protocolManager != null) {
                     Object versionObj = protocolManager.getClass().getMethod("getProtocolVersion", Player.class).invoke(protocolManager, player);
                     if (versionObj instanceof Number) {
-                        int ver = ((Number) versionObj).intValue();
-                        NeonOrder.plugin.getLogger().info("[PlayerUtils] ProtocolLib detected version: " + ver);
-                        return ver;
+                        return ((Number) versionObj).intValue();
                     }
                 }
             }
-        } catch (Throwable t) {
-            NeonOrder.plugin.getLogger().log(Level.WARNING, "[PlayerUtils] ProtocolLib version check failed", t);
-        }
+        } catch (Throwable ignored) {}
         try {
             if (player instanceof com.destroystokyo.paper.network.NetworkClient) {
-                int ver = ((com.destroystokyo.paper.network.NetworkClient) player).getProtocolVersion();
-                NeonOrder.plugin.getLogger().info("[PlayerUtils] NetworkClient detected version: " + ver);
-                return ver;
+                return ((com.destroystokyo.paper.network.NetworkClient) player).getProtocolVersion();
             }
         } catch (Throwable ignored) {}
         return -1;

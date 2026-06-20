@@ -37,6 +37,27 @@ public class AlgoUtils {
             if (search(item, q))
                 result.add(item);
         }
+        result.sort((a, b) -> {
+            String nameA = a.getType().getKey().value().toLowerCase();
+            String nameB = b.getType().getKey().value().toLowerCase();
+            
+            boolean exactA = nameA.equals(q);
+            boolean exactB = nameB.equals(q);
+            if (exactA && !exactB) return -1;
+            if (exactB && !exactA) return 1;
+            
+            boolean startsA = nameA.startsWith(q);
+            boolean startsB = nameB.startsWith(q);
+            if (startsA && !startsB) return -1;
+            if (startsB && !startsA) return 1;
+            
+            boolean wordA = nameA.contains("_" + q) || nameA.contains(q + "_");
+            boolean wordB = nameB.contains("_" + q) || nameB.contains(q + "_");
+            if (wordA && !wordB) return -1;
+            if (wordB && !wordA) return 1;
+            
+            return nameA.compareTo(nameB);
+        });
         return result;
     }
 
