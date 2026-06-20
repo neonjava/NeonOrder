@@ -70,7 +70,9 @@ public class ChooseItemGUI implements InventoryHolder {
     private static List<ItemStack> loadItems(SortTypes sortType, String search) {
         final Collection<ItemStack> sorted = plugin.getDataCache().getItems(sortType);
         if (search == null || search.isBlank()) return new ArrayList<>(sorted);
-        return AlgoUtils.searchItem(search, sorted);
+        List<ItemStack> filtered = AlgoUtils.searchItem(search, sorted);
+        filtered.sort(AlgoUtils.getComparator(sortType));
+        return filtered;
     }
 
     private static int clampPage(int page, int pages) {
