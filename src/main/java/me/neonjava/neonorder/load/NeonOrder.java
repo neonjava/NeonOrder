@@ -159,6 +159,7 @@ public final class NeonOrder extends JavaPlugin {
     @Override
     public void onDisable() {
         SignGUI.shutdown();
+        me.neonjava.neonorder.utils.DispatchUtil.shutdown();
     }
 
     public Storage createStorage() {

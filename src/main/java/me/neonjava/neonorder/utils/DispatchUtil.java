@@ -1,19 +1,16 @@
 package me.neonjava.neonorder.utils;
 
-import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
-import org.bukkit.Bukkit;
-
-import java.util.function.Consumer;
-
-import static me.neonjava.neonorder.load.NeonOrder.plugin;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class DispatchUtil {
+    private static final ExecutorService executor = Executors.newCachedThreadPool();
 
-    public static ScheduledTask async(Runnable toRun) {
-        return async(t -> toRun.run());
+    public static void async(Runnable toRun) {
+        executor.submit(toRun);
     }
 
-    public static ScheduledTask async(Consumer<ScheduledTask> toRun) {
-        return Bukkit.getAsyncScheduler().runNow(plugin, toRun);
+    public static void shutdown() {
+        executor.shutdown();
     }
 }
