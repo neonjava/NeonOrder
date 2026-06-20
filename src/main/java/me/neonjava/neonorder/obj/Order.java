@@ -80,26 +80,28 @@ public class Order implements me.neonjava.neonorder.api.Order {
         event.callEvent();
 
         deliver(p, currAmount).thenAccept(exceeded -> {
-            val toGive = new ArrayList<ItemStack>();
-            var am = 0;
-            for (ItemStack item : accepted) {
-                val addAmount = am + item.getAmount();
+            p.getScheduler().run(plugin, task -> {
+                val toGive = new ArrayList<ItemStack>();
+                var am = 0;
+                for (ItemStack item : accepted) {
+                    val addAmount = am + item.getAmount();
 
-                if (addAmount < exceeded) {
-                    am += item.getAmount();
+                    if (addAmount < exceeded) {
+                        am += item.getAmount();
+                        toGive.add(item);
+                        continue;
+                    }
+
+                    val splitAmount = exceeded - am;
+                    if (splitAmount == 0)
+                        break;
+                    item.setAmount(splitAmount);
                     toGive.add(item);
-                    continue;
-                }
-
-                val splitAmount = exceeded - am;
-                if (splitAmount == 0)
                     break;
-                item.setAmount(splitAmount);
-                toGive.add(item);
-                break;
-            }
-            // FIXME player loses some their items if they leave before the delivery arrives
-            PlayerUtils.give(p, toGive, true);
+                }
+                // FIXME player loses some their items if they leave before the delivery arrives
+                PlayerUtils.give(p, toGive, true);
+            }, null);
         });
     }
 
@@ -138,15 +140,17 @@ public class Order implements me.neonjava.neonorder.api.Order {
             return Response.FAIL;
 
         plugin.getStorage().collectItems(this, amount).thenAccept(success -> {
-            if (success.equals(Boolean.FALSE)) {
-                p.sendRichMessage(cache.getInvalidInput());
-                return;
-            }
+            p.getScheduler().run(plugin, task -> {
+                if (success.equals(Boolean.FALSE)) {
+                    p.sendRichMessage(cache.getInvalidInput());
+                    return;
+                }
 
-            PDCUtils.setCollected(p, collectedInMinute + amount);
+                PDCUtils.setCollected(p, collectedInMinute + amount);
 
-            // FIXME Player loses the items if they disconnect
-            PlayerUtils.give(p, getItem().clone(), amount, true);
+                // FIXME Player loses the items if they disconnect
+                PlayerUtils.give(p, getItem().clone(), amount, true);
+            }, null);
         });
 
         return Response.SCHEDULED;
@@ -162,32 +166,36 @@ public class Order implements me.neonjava.neonorder.api.Order {
                 return;
             }
             this.expiresAt = System.currentTimeMillis() - 1;
-            YourOrderGUI.open(p);
-            EconUtils.addMoney(Bukkit.getOfflinePlayer(getOwnerUniqueId()), payBack);
+            p.getScheduler().run(plugin, task -> {
+                EconUtils.addMoney(Bukkit.getOfflinePlayer(getOwnerUniqueId()), payBack);
+                YourOrderGUI.open(p);
+            }, null);
         });
     }
 
     private CompletableFuture<Integer> deliver(Player deliverer, int a) {
         final Function<Integer, Integer> func = exceeded -> {
-            final double earning = moneyPer * (a - exceeded);
-            EconUtils.addMoney(deliverer, earning);
-            deliverer.sendRichMessage(cache.getDelivered(),
-                    Placeholder.unparsed("money", ConvertUtils.formatNumber(earning)));
-            PlayerUtils.playSound(deliverer, cache.getDeliverSound());
+            deliverer.getScheduler().run(plugin, task -> {
+                final double earning = moneyPer * (a - exceeded);
+                EconUtils.addMoney(deliverer, earning);
+                deliverer.sendRichMessage(cache.getDelivered(),
+                        Placeholder.unparsed("money", ConvertUtils.formatNumber(earning)));
+                PlayerUtils.playSound(deliverer, cache.getDeliverSound());
 
-            final Player ownerPlayer = Bukkit.getPlayer(owner);
-            if (ownerPlayer == null || !ownerPlayer.isOnline())
-                return exceeded;
-            final ItemMeta meta = item.getItemMeta();
-            final Component displayName = meta == null ? null : meta.displayName();
-            assert item.getType().getItemTranslationKey() != null;
-            ownerPlayer.sendRichMessage(
-                    cache.getReceiveDelivery(),
-                    Placeholder.unparsed("deliverer", deliverer.getName()),
-                    Placeholder.unparsed("amount", ConvertUtils.formatNumber(a)),
-                    Placeholder.component("item",
-                            (displayName == null ? Component.translatable(item.getType().getItemTranslationKey())
-                                    : displayName)));
+                final Player ownerPlayer = Bukkit.getPlayer(owner);
+                if (ownerPlayer != null && ownerPlayer.isOnline()) {
+                    final ItemMeta meta = item.getItemMeta();
+                    final Component displayName = meta == null ? null : meta.displayName();
+                    assert item.getType().getItemTranslationKey() != null;
+                    ownerPlayer.sendRichMessage(
+                            cache.getReceiveDelivery(),
+                            Placeholder.unparsed("deliverer", deliverer.getName()),
+                            Placeholder.unparsed("amount", ConvertUtils.formatNumber(a)),
+                            Placeholder.component("item",
+                                    (displayName == null ? Component.translatable(item.getType().getItemTranslationKey())
+                                            : displayName)));
+                }
+            }, null);
             return exceeded;
         };
         return plugin.getStorage().deliverOrder(this, a).thenApply(func);
