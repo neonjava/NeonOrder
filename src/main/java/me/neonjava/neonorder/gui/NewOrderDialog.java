@@ -43,6 +43,7 @@ public class NewOrderDialog {
         }
 
         int protocol = me.neonjava.neonorder.utils.PlayerUtils.getPlayerProtocolVersion(p);
+        NeonOrder.plugin.getLogger().info("[NewOrderDialog] Player " + p.getName() + " protocol detected: " + protocol);
         if (NeonOrder.hasDialogAPI && !me.neonjava.neonorder.utils.BedrockUtils.isBedrock(p) && protocol >= 772) {
             showSearchAndSelectDialog(p, null);
         } else {
