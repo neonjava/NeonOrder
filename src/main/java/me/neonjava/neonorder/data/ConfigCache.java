@@ -65,6 +65,7 @@ public class ConfigCache {
         private String deliverTitle;
         private int deliverRows = 6;
 
+        private boolean useDialogAPI = true;
         private String newOrderDialogTitle;
         private String itemDescription;
         private String amountLabel;
@@ -385,6 +386,7 @@ public class ConfigCache {
                 config.addDefault("gui.delivery.rows", 6);
 
                 // NEW ORDER DIALOG
+                config.addDefault("gui.use-dialog-api", true, "Whether to use Paper Dialog API for players on compatible versions (1.21.7+ / protocol >= 772)");
                 config.addDefault("gui.new-order.title", "Create A New Order");
                 config.addDefault("gui.new-order.item-description", "You're creating an order for this item");
                 config.addDefault("gui.new-order.amount-label", "Amount");
@@ -532,6 +534,7 @@ public class ConfigCache {
                 deliverTitle = config.getString("gui.delivery.title");
                 deliverRows = config.getInteger("gui.delivery.rows");
 
+                useDialogAPI = config.getBoolean("gui.use-dialog-api");
                 newOrderDialogTitle = config.getString("gui.new-order.title");
                 itemDescription = config.getString("gui.new-order.item-description");
                 amountLabel = config.getString("gui.new-order.amount-label");

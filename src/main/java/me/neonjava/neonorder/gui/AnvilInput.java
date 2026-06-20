@@ -29,12 +29,16 @@ public class AnvilInput implements Listener {
         private final String initialText;
         private final Consumer<String> callback;
         private final Inventory inventory;
+        private final int originalLevel;
+        private final float originalExp;
 
         public AnvilSession(Player player, String title, String initialText, Consumer<String> callback) {
             this.player = player;
             this.title = title;
             this.initialText = initialText == null ? "" : initialText;
             this.callback = callback;
+            this.originalLevel = player.getLevel();
+            this.originalExp = player.getExp();
             this.inventory = Bukkit.createInventory(player, org.bukkit.event.inventory.InventoryType.ANVIL, Component.text(title));
             
             ItemStack paper = new ItemStack(Material.PAPER);
@@ -47,6 +51,9 @@ public class AnvilInput implements Listener {
         }
 
         public void open() {
+            if (player.getLevel() < 5) {
+                player.setLevel(5);
+            }
             player.openInventory(inventory);
             sessions.put(player.getUniqueId(), this);
         }
@@ -88,20 +95,27 @@ public class AnvilInput implements Listener {
         event.setCancelled(true);
 
         if (event.getRawSlot() == 2) {
-            AnvilInventory anvilInv = (AnvilInventory) event.getInventory();
-            String resultText = anvilInv.getRenameText();
+            String resultText = null;
+            if (event.getInventory() instanceof AnvilInventory anvilInv) {
+                resultText = anvilInv.getRenameText();
+                NeonOrder.plugin.getLogger().info("[AnvilInput] getRenameText() returned: " + resultText);
+            }
             if (resultText == null) {
-                ItemStack item = anvilInv.getItem(2);
+                ItemStack item = event.getInventory().getItem(2);
                 if (item != null && item.hasItemMeta()) {
                     resultText = item.getItemMeta().getDisplayName();
+                    NeonOrder.plugin.getLogger().info("[AnvilInput] fallback getDisplayName() returned: " + resultText);
                 }
             }
             if (resultText == null) resultText = "";
 
-            sessions.remove(p.getUniqueId());
             p.closeInventory();
+            sessions.remove(p.getUniqueId());
+            p.setLevel(session.originalLevel);
+            p.setExp(session.originalExp);
             
             final String finalResult = resultText;
+            NeonOrder.plugin.getLogger().info("[AnvilInput] Final result text callback accepted: " + finalResult);
             session.callback.accept(finalResult);
         }
     }
@@ -110,6 +124,10 @@ public class AnvilInput implements Listener {
     public void onClose(InventoryCloseEvent event) {
         if (!(event.getPlayer() instanceof Player)) return;
         Player p = (Player) event.getPlayer();
-        sessions.remove(p.getUniqueId());
+        AnvilSession session = sessions.remove(p.getUniqueId());
+        if (session != null) {
+            p.setLevel(session.originalLevel);
+            p.setExp(session.originalExp);
+        }
     }
 }
