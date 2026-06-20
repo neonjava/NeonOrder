@@ -130,6 +130,8 @@ public class OrderConfigMenu implements InventoryHolder {
                 player.sendRichMessage("<green>Order created successfully!");
             } else if (res == Order.Response.FAIL) {
                 player.sendRichMessage("<red>You don't have enough money!");
+            } else if (res == Order.Response.LIMIT_REACHED) {
+                player.sendRichMessage("<red>You have reached your active order limit!");
             } else {
                 player.sendRichMessage("<red>Failed to create order.");
             }

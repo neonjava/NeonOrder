@@ -259,6 +259,10 @@ public class Order implements me.neonjava.neonorder.api.Order {
     }
 
     public static Response create(Player owner, ItemStack item, double moneyPer, int amount) {
+        if (me.neonjava.neonorder.gui.YourOrderGUI.isAtLimit(owner)) {
+            return Response.LIMIT_REACHED;
+        }
+
         val event = new PlayerCreateOrderEvent(owner, item, moneyPer, amount);
         if (!event.callEvent())
             return Response.CANCELLED;
@@ -279,7 +283,6 @@ public class Order implements me.neonjava.neonorder.api.Order {
                                 ? item.getItemMeta().displayName()
                                 : net.kyori.adventure.text.Component
                                         .translatable(item.getType().getItemTranslationKey()))));
-        owner.getServer().sendMessage(broadcastMsg);
         for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
             onlinePlayer.sendActionBar(broadcastMsg);
         }
@@ -292,6 +295,7 @@ public class Order implements me.neonjava.neonorder.api.Order {
         SUCCESS,
         FAIL,
         CANCELLED,
-        SCHEDULED
+        SCHEDULED,
+        LIMIT_REACHED
     }
 }
