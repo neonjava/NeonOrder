@@ -40,9 +40,3 @@ dependencies:
     Vault:
       required: true
       join-classpath: true
-    ViaVersion:
-      required: false
-      join-classpath: true
-    ProtocolLib:
-      required: false
-      join-classpath: true
