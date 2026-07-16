@@ -19,6 +19,8 @@ import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.BlockStateMeta;
+import org.bukkit.block.ShulkerBox;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -232,6 +234,13 @@ public class MainGUI implements InventoryHolder {
                 items.add(item);
                 if (AlgoUtils.isSimilar(item, comparer)) {
                     amount += item.getAmount();
+                } else if (item.getItemMeta() instanceof BlockStateMeta bsm &&
+                           bsm.getBlockState() instanceof ShulkerBox shulkerBox) {
+                    for (ItemStack shulkerItem : shulkerBox.getInventory().getContents()) {
+                        if (shulkerItem != null && !shulkerItem.isEmpty() && AlgoUtils.isSimilar(shulkerItem, comparer)) {
+                            amount += shulkerItem.getAmount();
+                        }
+                    }
                 }
             }
 
