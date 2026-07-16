@@ -75,7 +75,27 @@ public class DeliveryConfirmGUI implements InventoryHolder {
         if (rawSlot == 15) {
             finished = true;
             player.closeInventory();
-            order.deliver(player, items);
+            player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_MINECART_RIDING, 1.0f, 1.0f);
+
+            final int[] step = {0};
+            player.getScheduler().runAtFixedRate(NeonOrder.plugin, task -> {
+                if (!player.isOnline()) {
+                    task.cancel();
+                    PlayerUtils.give(player, items, true);
+                    return;
+                }
+
+                if (step[0] >= 16) {
+                    task.cancel();
+                    player.sendActionBar(net.kyori.adventure.text.Component.empty());
+                    order.deliver(player, items);
+                    return;
+                }
+
+                String dots = ".".repeat((step[0] % 4) + 1);
+                player.sendActionBar(NeonOrder.plugin.mm.deserialize("<gold><bold>Delivering order" + dots));
+                step[0]++;
+            }, null, 1L, 5L);
         }
     }
 
