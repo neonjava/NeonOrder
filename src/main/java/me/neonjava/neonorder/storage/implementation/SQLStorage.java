@@ -59,6 +59,10 @@ public class SQLStorage extends Storage {
         conf.setJdbcUrl(jdbcUrl);
         if (username != null) conf.setUsername(username);
         if (password != null) conf.setPassword(password);
+        if (method == StorageMethod.SQLITE) {
+            conf.setMaximumPoolSize(1);
+            conf.setConnectionInitSql("PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA busy_timeout=10000;");
+        }
         data = new HikariDataSource(conf);
 
         switch (method) {
