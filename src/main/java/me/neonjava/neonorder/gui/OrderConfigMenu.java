@@ -59,6 +59,12 @@ public class OrderConfigMenu implements InventoryHolder {
                 "§7Click to enter price per item via sign.",
                 "§7Format: §e10  10k  10m  1b"));
 
+        // Slot 12: Enchantments (Enchanted Book)
+        if (isEnchantable(baseItem)) {
+            inventory.setItem(12, create(Material.ENCHANTED_BOOK, "§d§lSelect Enchantments",
+                    "§7Click to customize item enchantments."));
+        }
+
         // Slot 22: Confirm (Lime Glass)
         inventory.setItem(22, create(Material.LIME_STAINED_GLASS_PANE, "§a§l✔ Confirm Order",
                 "§7Click to place the order.",
@@ -123,6 +129,11 @@ public class OrderConfigMenu implements InventoryHolder {
             return;
         }
 
+        if (slot == 12 && isEnchantable(baseItem)) {
+            new OrderEnchantGUI(player, this, baseItem).open();
+            return;
+        }
+
         if (slot == 22) { // Confirm
             player.closeInventory();
             Order.Response res = Order.create(player, baseItem, price, amount);
@@ -136,6 +147,24 @@ public class OrderConfigMenu implements InventoryHolder {
                 player.sendRichMessage("<red>Failed to create order.");
             }
         }
+    }
+
+    private boolean isEnchantable(ItemStack item) {
+        if (item.getType() == Material.BOOK || item.getType() == Material.ENCHANTED_BOOK) {
+            return true;
+        }
+        ItemStack checkItem = item.clone();
+        checkItem.setAmount(1);
+        for (org.bukkit.enchantments.Enchantment enchantment : org.bukkit.Registry.ENCHANTMENT) {
+            try {
+                if (enchantment.canEnchantItem(checkItem)) {
+                    return true;
+                }
+            } catch (Exception e) {
+                // ignore
+            }
+        }
+        return false;
     }
 
     @Override
