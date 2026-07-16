@@ -16,12 +16,18 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.BlockStateMeta;
+import org.bukkit.block.ShulkerBox;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Set;
+import java.util.HashSet;
 
 import static me.neonjava.neonorder.load.NeonOrder.plugin;
 
@@ -60,47 +66,109 @@ public class Order implements me.neonjava.neonorder.api.Order {
         return delivered < amount && expiresAt > System.currentTimeMillis();
     }
 
+    private static class MatchSource {
+        final ItemStack sourceStack;
+        final int shulkerSlot;
+        final ItemStack matchedStack;
+
+        MatchSource(ItemStack sourceStack, int shulkerSlot, ItemStack matchedStack) {
+            this.sourceStack = sourceStack;
+            this.shulkerSlot = shulkerSlot;
+            this.matchedStack = matchedStack;
+        }
+    }
+
     /// Must be called in the player region
     public void deliver(Player p, Collection<ItemStack> items) {
-        int currAmount = 0;
-        val accepted = new ArrayList<ItemStack>();
-        for (ItemStack item : items) {
-            if (!AlgoUtils.isSimilar(item, getItem())) {
-                PlayerUtils.give(p, item, false);
-                continue;
-            }
+        val matchedSources = new ArrayList<MatchSource>();
+        val nonMatchingItems = new ArrayList<ItemStack>();
+        var totalMatchingAmount = 0;
 
-            currAmount += item.getAmount();
-            accepted.add(item);
+        for (ItemStack item : items) {
+            if (item == null || item.isEmpty()) continue;
+
+            if (AlgoUtils.isSimilar(item, getItem())) {
+                matchedSources.add(new MatchSource(item, -1, item));
+                totalMatchingAmount += item.getAmount();
+            } else if (item.getItemMeta() instanceof BlockStateMeta bsm &&
+                       bsm.getBlockState() instanceof ShulkerBox shulkerBox) {
+                val contents = shulkerBox.getInventory().getContents();
+                var hasMatches = false;
+                for (int slot = 0; slot < contents.length; slot++) {
+                    ItemStack shulkerItem = contents[slot];
+                    if (shulkerItem != null && !shulkerItem.isEmpty() && AlgoUtils.isSimilar(shulkerItem, getItem())) {
+                        matchedSources.add(new MatchSource(item, slot, shulkerItem));
+                        totalMatchingAmount += shulkerItem.getAmount();
+                        hasMatches = true;
+                    }
+                }
+                if (!hasMatches) {
+                    nonMatchingItems.add(item);
+                }
+            } else {
+                nonMatchingItems.add(item);
+            }
         }
-        if (currAmount == 0)
+
+        for (ItemStack item : nonMatchingItems) {
+            PlayerUtils.give(p, item, false);
+        }
+
+        if (totalMatchingAmount == 0)
             return;
 
-        val event = new PlayerDeliverOrderEvent(p, this, currAmount);
+        val event = new PlayerDeliverOrderEvent(p, this, totalMatchingAmount);
         event.callEvent();
 
-        deliver(p, currAmount).thenAccept(exceeded -> {
+        final int finalMatchingAmount = totalMatchingAmount;
+        deliver(p, totalMatchingAmount).thenAccept(exceeded -> {
             p.getScheduler().run(plugin, task -> {
-                val toGive = new ArrayList<ItemStack>();
-                var am = 0;
-                for (ItemStack item : accepted) {
-                    val addAmount = am + item.getAmount();
+                val toConsume = finalMatchingAmount - exceeded;
+                val modifiedShulkers = new HashMap<ItemStack, ShulkerBox>();
+                val sourceStacksToReturn = new HashSet<ItemStack>();
 
-                    if (addAmount < exceeded) {
-                        am += item.getAmount();
-                        toGive.add(item);
+                var consumed = 0;
+                for (MatchSource source : matchedSources) {
+                    val matched = source.matchedStack;
+                    val matchAmt = matched.getAmount();
+
+                    if (consumed >= toConsume) {
+                        sourceStacksToReturn.add(source.sourceStack);
                         continue;
                     }
 
-                    val splitAmount = exceeded - am;
-                    if (splitAmount == 0)
-                        break;
-                    item.setAmount(splitAmount);
-                    toGive.add(item);
-                    break;
+                    val remainingToConsume = toConsume - consumed;
+                    if (matchAmt <= remainingToConsume) {
+                        consumed += matchAmt;
+                        if (source.shulkerSlot != -1) {
+                            val shulker = modifiedShulkers.computeIfAbsent(source.sourceStack, k -> 
+                                (ShulkerBox) ((BlockStateMeta) k.getItemMeta()).getBlockState()
+                            );
+                            shulker.getInventory().setItem(source.shulkerSlot, null);
+                            sourceStacksToReturn.add(source.sourceStack);
+                        }
+                    } else {
+                        matched.setAmount(matchAmt - remainingToConsume);
+                        consumed = toConsume;
+                        if (source.shulkerSlot != -1) {
+                            val shulker = modifiedShulkers.computeIfAbsent(source.sourceStack, k -> 
+                                (ShulkerBox) ((BlockStateMeta) k.getItemMeta()).getBlockState()
+                            );
+                            shulker.getInventory().setItem(source.shulkerSlot, matched);
+                        }
+                        sourceStacksToReturn.add(source.sourceStack);
+                    }
                 }
-                // FIXME player loses some their items if they leave before the delivery arrives
-                PlayerUtils.give(p, toGive, true);
+
+                for (Map.Entry<ItemStack, ShulkerBox> entry : modifiedShulkers.entrySet()) {
+                    val shulkerItem = entry.getKey();
+                    val shulker = entry.getValue();
+                    shulkerItem.editMeta(BlockStateMeta.class, bsm -> {
+                        bsm.setBlockState(shulker);
+                    });
+                }
+
+                PlayerUtils.give(p, new ArrayList<>(sourceStacksToReturn), true);
             }, null);
         });
     }
