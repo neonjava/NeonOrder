@@ -37,6 +37,8 @@ public abstract class Storage {
         val modifiedItemsConfig = new HikariConfig();
         modifiedItemsConfig.setPoolName("modified items pool");
         modifiedItemsConfig.setJdbcUrl("jdbc:sqlite:" + plugin.getDataFolder() + File.separator + "modified_items.db");
+        modifiedItemsConfig.setMaximumPoolSize(1);
+        modifiedItemsConfig.setConnectionInitSql("PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA busy_timeout=10000;");
         this.modifiedItemDataSource = new HikariDataSource(modifiedItemsConfig);
 
         val itemsList = loadItems();
