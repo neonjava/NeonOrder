@@ -7,6 +7,8 @@ import me.neonjava.neonorder.gui.EditOrderGUI;
 import me.neonjava.neonorder.gui.CollectItemsGUI;
 import me.neonjava.neonorder.gui.DeliveryConfirmGUI;
 import me.neonjava.neonorder.gui.ChooseItemGUI;
+import me.neonjava.neonorder.gui.OrderEnchantGUI;
+import me.neonjava.neonorder.gui.OrderEnchantLevelGUI;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -55,6 +57,17 @@ public class BedrockMenuListener implements Listener {
         if (e.getInventory().getHolder() instanceof OrderConfigMenu menu) {
             e.setCancelled(true);
             menu.handle(e.getRawSlot());
+            return;
+        }
+        if (e.getInventory().getHolder() instanceof OrderEnchantGUI menu) {
+            e.setCancelled(true);
+            menu.handle(e.getRawSlot(), e.isShiftClick());
+            return;
+        }
+        if (e.getInventory().getHolder() instanceof OrderEnchantLevelGUI menu) {
+            e.setCancelled(true);
+            menu.handle(e.getRawSlot());
+            return;
         }
     }
 
