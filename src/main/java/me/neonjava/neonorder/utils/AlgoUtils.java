@@ -163,7 +163,28 @@ public class AlgoUtils {
     public static boolean isSimilar(final ItemStack a, final ItemStack b) {
         if (!a.getType().equals(b.getType()))
             return false;
+
+        io.papermc.paper.datacomponent.item.ItemEnchantments enchantA = a.getData(io.papermc.paper.datacomponent.DataComponentTypes.ENCHANTMENTS);
+        io.papermc.paper.datacomponent.item.ItemEnchantments enchantB = b.getData(io.papermc.paper.datacomponent.DataComponentTypes.ENCHANTMENTS);
+        if (enchantA == null) enchantA = io.papermc.paper.datacomponent.item.ItemEnchantments.itemEnchantments().build();
+        if (enchantB == null) enchantB = io.papermc.paper.datacomponent.item.ItemEnchantments.itemEnchantments().build();
+        if (!enchantA.equals(enchantB)) {
+            return false;
+        }
+
+        io.papermc.paper.datacomponent.item.ItemEnchantments storedA = a.getData(io.papermc.paper.datacomponent.DataComponentTypes.STORED_ENCHANTMENTS);
+        io.papermc.paper.datacomponent.item.ItemEnchantments storedB = b.getData(io.papermc.paper.datacomponent.DataComponentTypes.STORED_ENCHANTMENTS);
+        if (storedA == null) storedA = io.papermc.paper.datacomponent.item.ItemEnchantments.itemEnchantments().build();
+        if (storedB == null) storedB = io.papermc.paper.datacomponent.item.ItemEnchantments.itemEnchantments().build();
+        if (!storedA.equals(storedB)) {
+            return false;
+        }
+
         for (final DataComponentType.Valued<?> component : cache.getSimilarityCheck()) {
+            if (component.equals(io.papermc.paper.datacomponent.DataComponentTypes.ENCHANTMENTS) || 
+                component.equals(io.papermc.paper.datacomponent.DataComponentTypes.STORED_ENCHANTMENTS)) {
+                continue;
+            }
             final Object dataA = a.getData(component);
             final Object dataB = b.getData(component);
             if (dataA == null && dataB == null)
