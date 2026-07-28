@@ -113,18 +113,23 @@ public class PlayerUtils {
     }
 
     public static int getPlayerProtocolVersion(Player player) {
-        try {
-            if (Bukkit.getPluginManager().isPluginEnabled("ViaVersion")) {
-                Object viaApi = Class.forName("com.viaversion.viaversion.api.Via").getMethod("getAPI").invoke(null);
+        if (Bukkit.getPluginManager().isPluginEnabled("ViaVersion")) {
+            try {
+                Class<?> viaClass = Class.forName("com.viaversion.viaversion.api.Via");
+                Object viaApi = viaClass.getMethod("getAPI").invoke(null);
                 if (viaApi != null) {
-                    Class<?> viaApiClass = Class.forName("com.viaversion.viaversion.api.ViaAPI");
-                    Object versionObj = viaApiClass.getMethod("getPlayerVersion", java.util.UUID.class).invoke(viaApi, player.getUniqueId());
-                    if (versionObj instanceof Number) {
-                        return ((Number) versionObj).intValue();
+                    for (java.lang.reflect.Method m : viaApi.getClass().getMethods()) {
+                        if (m.getName().equals("getPlayerVersion") && m.getParameterCount() == 1) {
+                            Object arg = m.getParameterTypes()[0].equals(java.util.UUID.class) ? player.getUniqueId() : player;
+                            Object versionObj = m.invoke(viaApi, arg);
+                            if (versionObj instanceof Number) {
+                                return ((Number) versionObj).intValue();
+                            }
+                        }
                     }
                 }
-            }
-        } catch (Throwable ignored) {}
+            } catch (Throwable ignored) {}
+        }
         try {
             if (Bukkit.getPluginManager().isPluginEnabled("ProtocolLib")) {
                 Object protocolManager = Class.forName("com.comphenix.protocol.ProtocolLibrary").getMethod("getProtocolManager").invoke(null);
@@ -137,8 +142,8 @@ public class PlayerUtils {
             }
         } catch (Throwable ignored) {}
         try {
-            if (player instanceof com.destroystokyo.paper.network.NetworkClient) {
-                return ((com.destroystokyo.paper.network.NetworkClient) player).getProtocolVersion();
+            if (player instanceof com.destroystokyo.paper.network.NetworkClient client) {
+                return client.getProtocolVersion();
             }
         } catch (Throwable ignored) {}
         return -1;
