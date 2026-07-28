@@ -36,7 +36,8 @@ public class SignGUI implements Listener {
             action.accept("");
             return;
         }
-        if (sessionsList.containsKey(p)) return;
+        // Remove any stale session so a fresh sign always opens correctly
+        sessionsList.remove(p);
 
         final int x = (int) Math.floor(p.getX());
         final int y = (int) Math.floor(p.getEyeLocation().getY());
@@ -78,16 +79,11 @@ public class SignGUI implements Listener {
         if (info == null) return;
         final BlockPosition pos = info.pos();
         if (!e.getEditedBlockPosition().equals(pos)) return;
-        StringBuilder inputBuilder = new StringBuilder();
-        for (net.kyori.adventure.text.Component lineComp : e.lines()) {
-            String text = PlainTextComponentSerializer.plainText().serialize(lineComp).trim();
-            if (text.contains("↑") || text.contains("^") || text.equalsIgnoreCase("Search")) continue;
-            if (!text.isEmpty()) {
-                if (inputBuilder.length() > 0) inputBuilder.append(" ");
-                inputBuilder.append(text);
-            }
-        }
-        final String fullInput = inputBuilder.toString().trim();
+        // Line 0 is always where the player types their value.
+        // Lines 1-3 are pre-filled hint text (^^^ / label / instruction) — ignore them.
+        List<net.kyori.adventure.text.Component> signLines = e.lines();
+        String fullInput = signLines.isEmpty() ? "" :
+                PlainTextComponentSerializer.plainText().serialize(signLines.get(0)).trim();
         info.action().accept(fullInput);
 
         sessionsList.remove(player);
