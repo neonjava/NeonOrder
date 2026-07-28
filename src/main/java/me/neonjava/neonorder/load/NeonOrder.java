@@ -22,6 +22,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 
 @Getter
@@ -77,9 +78,7 @@ public final class NeonOrder extends JavaPlugin {
         isFolia = isFolia();
         hasDialogAPI = hasDialogAPI();
         if (!setupEconomy()) {
-            Log.warn("NeonOrder disabled because Vault has no economy provider.");
-            getServer().getPluginManager().disablePlugin(this);
-            return;
+            Log.warn("Vault economy provider not found at startup; economy will resolve lazily when needed.");
         }
         UpdateUtils.init(this);
         if (!UpdateUtils.downloadItems()) {
@@ -184,11 +183,23 @@ public final class NeonOrder extends JavaPlugin {
         }
         RegisteredServiceProvider<Economy> rsp = getServer().getServicesManager().getRegistration(Economy.class);
         if (rsp == null) {
-            return false;
+            Collection<RegisteredServiceProvider<Economy>> rsps = getServer().getServicesManager().getRegistrations(Economy.class);
+            if (rsps != null && !rsps.isEmpty()) {
+                for (RegisteredServiceProvider<Economy> p : rsps) {
+                    if (p.getProvider() != null) {
+                        rsp = p;
+                        if (p.getProvider().getName().equalsIgnoreCase("NeonEconomy")) {
+                            break;
+                        }
+                    }
+                }
+            }
         }
-        econ = rsp.getProvider();
-
-        return true;
+        if (rsp != null) {
+            econ = rsp.getProvider();
+            return true;
+        }
+        return false;
     }
 
     private static boolean isFolia() {
