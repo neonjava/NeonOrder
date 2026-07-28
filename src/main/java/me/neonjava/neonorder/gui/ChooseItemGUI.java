@@ -175,7 +175,7 @@ public class ChooseItemGUI implements InventoryHolder {
         if (items.isEmpty()) {
             player.sendRichMessage("<red>No selectable items loaded. Check plugins/NeonOrder/items.db.");
         }
-        player.openInventory(inventory);
+        player.getScheduler().run(plugin, task -> player.openInventory(inventory), null);
     }
 
     @Override

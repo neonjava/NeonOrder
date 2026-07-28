@@ -121,11 +121,7 @@ public class YourOrderGUI implements InventoryHolder {
             return;
         }
         if (rawSlot == 22 && !isAtLimit(player)) {
-            int protocol = me.neonjava.neonorder.utils.PlayerUtils.getPlayerProtocolVersion(player);
-            if (NeonOrder.plugin.getConfigs().isUseDialogAPI() && NeonOrder.hasDialogAPI && !me.neonjava.neonorder.utils.BedrockUtils.isBedrock(player) && protocol >= 772) {
-                PlayerUtils.closeInv(player);
-            }
-            NewOrderDialog.start(player);
+            player.getScheduler().run(plugin, task -> NewOrderDialog.start(player), null);
             return;
         }
         if (rawSlot == 25) {
