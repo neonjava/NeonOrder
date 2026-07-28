@@ -1,11 +1,12 @@
 name: NeonOrder
 version: ${version}
 main: me.neonjava.neonorder.load.NeonOrder
-bootstrapper: me.neonjava.neonorder.load.Bootstrapper
 api-version: '1.21'
 folia-supported: true
 authors: [ neonjava ]
 description: An order plugin
+depend: [ Vault ]
+softdepend: [ ProtocolLib, ViaVersion ]
 permissions:
   neonorder.admin:
     default: op
@@ -34,9 +35,3 @@ permissions:
   neonorder.bypass.max-collect-per-minute:
     default: op
     description: Bypass max-collect-per-minute value
-
-dependencies:
-  server:
-    Vault:
-      required: true
-      join-classpath: true
