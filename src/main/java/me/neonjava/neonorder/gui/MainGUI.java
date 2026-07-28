@@ -184,7 +184,11 @@ public class MainGUI implements InventoryHolder {
 
         final Order order = orders.get(orderIdx);
         if (clickType == ClickType.RIGHT && clicker.hasPermission("neonorder.admin.edit-orders")) {
-            clicker.showDialog(AdminToolGUI.createEditOrder(order));
+            try {
+                clicker.showDialog(AdminToolGUI.createEditOrder(order));
+            } catch (Throwable t) {
+                clicker.sendRichMessage("<red>Admin dialog edit is not supported on this client version.");
+            }
             return;
         }
         if (player.getUniqueId().equals(order.getOwnerUniqueId())) {
