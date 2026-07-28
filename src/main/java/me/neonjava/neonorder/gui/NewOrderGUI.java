@@ -108,23 +108,21 @@ public class NewOrderGUI {
         // Slot 22 (Row 2, Col 4): Summary - Green Glass Pane
         ItemStack summary = new ItemStack(Material.GREEN_STAINED_GLASS_PANE);
         ItemMeta sim = summary.getItemMeta();
+        String amountStr = amountCache.getOrDefault(p.getUniqueId(), "1");
+        String priceStr  = priceCache.getOrDefault(p.getUniqueId(), "1");
+        String totalStr  = computeTotal(priceStr, amountStr);
         if (sim != null) {
-            String amount = amountCache.getOrDefault(p.getUniqueId(), "1");
-            String price = priceCache.getOrDefault(p.getUniqueId(), "1");
             sim.displayName(mm.deserialize("<green>Order Summary")
                     .decoration(TextDecoration.ITALIC, false));
             List<Component> lore = new ArrayList<>();
-            lore.add(mm.deserialize("<gray>Items to deliver: <white>" + amount)
+            lore.add(mm.deserialize("<gray>Items to deliver: <white>" + amountStr)
                     .decoration(TextDecoration.ITALIC, false));
-            lore.add(mm.deserialize("<gray>Price per item: <gold>" + price)
+            lore.add(mm.deserialize("<gray>Price per item:   <gold>$" + priceStr)
                     .decoration(TextDecoration.ITALIC, false));
-            try {
-                long totalPrice = Long.parseLong(price.replaceAll("[^0-9]", "")) * Long.parseLong(amount);
-                lore.add(mm.deserialize("<gray>Total payment: <gold>" + formatPrice(totalPrice))
-                        .decoration(TextDecoration.ITALIC, false));
-            } catch (NumberFormatException ex) {
-                // Ignore
-            }
+            lore.add(mm.deserialize("<gray>─────────────────────")
+                    .decoration(TextDecoration.ITALIC, false));
+            lore.add(mm.deserialize("<gray>Total cost:       <yellow><bold>$" + totalStr)
+                    .decoration(TextDecoration.ITALIC, false));
             sim.lore(lore);
             summary.setItemMeta(sim);
         }
@@ -137,7 +135,11 @@ public class NewOrderGUI {
             cfm.displayName(mm.deserialize("<green><bold>Confirm Order")
                     .decoration(TextDecoration.ITALIC, false));
             List<Component> lore = new ArrayList<>();
-            lore.add(mm.deserialize("<gray>Click to create").decoration(TextDecoration.ITALIC, false));
+            lore.add(mm.deserialize("<gray>Amount: <white>" + amountStr).decoration(TextDecoration.ITALIC, false));
+            lore.add(mm.deserialize("<gray>Price:  <gold>$" + priceStr).decoration(TextDecoration.ITALIC, false));
+            lore.add(mm.deserialize("<gray>Total:  <yellow><bold>$" + totalStr).decoration(TextDecoration.ITALIC, false));
+            lore.add(mm.deserialize("").decoration(TextDecoration.ITALIC, false));
+            lore.add(mm.deserialize("<green>Click to confirm & pay").decoration(TextDecoration.ITALIC, false));
             cfm.lore(lore);
             confirm.setItemMeta(cfm);
         }
@@ -225,6 +227,20 @@ public class NewOrderGUI {
 
             p.getScheduler().run(NeonOrder.plugin, t -> open(p, item), null);
         }, lines, BlockType.OAK_SIGN);
+    }
+
+    private static String computeTotal(String priceStr, String amountStr) {
+        try {
+            double price = Double.parseDouble(priceStr.trim());
+            long amount = Long.parseLong(amountStr.trim());
+            double total = price * amount;
+            if (total >= 1_000_000_000) return String.format("%.1fb", total / 1_000_000_000.0).replaceAll("\\.0+$", "");
+            if (total >= 1_000_000)     return String.format("%.1fm", total / 1_000_000.0).replaceAll("\\.0+$", "");
+            if (total >= 1_000)         return String.format("%.1fk", total / 1_000.0).replaceAll("\\.0+$", "");
+            return String.format("%.2f", total).replaceAll("\\.00$", "");
+        } catch (NumberFormatException e) {
+            return "?";
+        }
     }
 
     private static String formatPrice(long value) {
