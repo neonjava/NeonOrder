@@ -35,7 +35,8 @@ public class OrderConfigMenu implements InventoryHolder {
         inventory.clear();
 
         // Slot 10: Cancel / Back (Red Glass Pane)
-        inventory.setItem(10, create(Material.RED_STAINED_GLASS_PANE, " "));
+        inventory.setItem(10, create(Material.RED_STAINED_GLASS_PANE, "§c§lCancel",
+                "§7Click to cancel creating this order."));
 
         // Slot 12: Set Amount (Emerald)
         inventory.setItem(12, create(Material.EMERALD, "§b§lAmount: §f" + amount,
