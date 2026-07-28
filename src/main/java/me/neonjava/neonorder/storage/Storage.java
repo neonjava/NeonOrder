@@ -145,7 +145,7 @@ public abstract class Storage {
     private Collection<ItemStack> loadItems() {
         @SuppressWarnings("deprecation")
         val dataVer = Bukkit.getUnsafe().getDataVersion();
-        val items = new HashSet<ItemStack>();
+        val items = new ArrayList<ItemStack>();
         for (org.bukkit.Material mat : org.bukkit.Material.values()) {
             if (!mat.isLegacy() && mat.isItem() && !mat.isAir()) {
                 items.add(new ItemStack(mat));
