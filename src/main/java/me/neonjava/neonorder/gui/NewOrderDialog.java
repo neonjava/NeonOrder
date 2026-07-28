@@ -46,7 +46,12 @@ public class NewOrderDialog {
     }
 
     public static void newSession(Player p, ItemStack displayItem) {
-        new OrderConfigMenu(p, displayItem).open();
+        OrderConfigMenu configMenu = new OrderConfigMenu(p, displayItem);
+        if (OrderEnchantGUI.isEnchantable(displayItem)) {
+            new OrderEnchantGUI(p, configMenu, displayItem).open();
+        } else {
+            configMenu.open();
+        }
     }
 
     private static void showSearchAndSelectDialog(Player p, String query) {

@@ -43,6 +43,21 @@ public class OrderEnchantGUI implements InventoryHolder {
         render();
     }
 
+    public static boolean isEnchantable(ItemStack item) {
+        if (item == null || item.getType() == Material.AIR) return false;
+        if (item.getType() == Material.BOOK || item.getType() == Material.ENCHANTED_BOOK) return true;
+        ItemStack checkItem = item.clone();
+        checkItem.setAmount(1);
+        for (Enchantment enchantment : org.bukkit.Registry.ENCHANTMENT) {
+            try {
+                if (enchantment.canEnchantItem(checkItem)) {
+                    return true;
+                }
+            } catch (Exception ignored) {}
+        }
+        return false;
+    }
+
     private List<Enchantment> getApplicableEnchantments(ItemStack item) {
         List<Enchantment> list = new ArrayList<>();
         ItemStack checkItem = item.clone();
