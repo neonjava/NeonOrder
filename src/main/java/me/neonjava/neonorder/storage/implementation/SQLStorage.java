@@ -12,6 +12,7 @@ import me.neonjava.neonorder.utils.Log;
 import org.bukkit.inventory.ItemStack;
 
 import java.io.File;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -51,13 +52,17 @@ public class SQLStorage extends Storage {
         return new SQLStorage(StorageMethod.SQLITE, "jdbc:sqlite:" + dataDir + File.separator + "data.db", null, null);
     }
 
+    private final SQLiteConnectionManager sqliteConnManager;
+
     private SQLStorage(StorageMethod method, String jdbcUrl, String username, String password) {
         super();
         this.method = method;
         if (method == StorageMethod.SQLITE) {
             File dbFile = new File(dataDir, "data.db");
-            this.data = createSqliteDataSource("orders data pool", dbFile);
+            this.sqliteConnManager = new SQLiteConnectionManager(dbFile);
+            this.data = null;
         } else {
+            this.sqliteConnManager = null;
             val conf = new HikariConfig();
             conf.setPoolName("orders data pool");
             conf.setJdbcUrl(jdbcUrl);
@@ -82,20 +87,28 @@ public class SQLStorage extends Storage {
         plugin.getDataCache().setOrders(orders);
     }
 
+    public Connection getConnection() throws SQLException {
+        if (method == StorageMethod.SQLITE) {
+            return sqliteConnManager.getConnection();
+        }
+        return data.getConnection();
+    }
+
     @Override
     public void close() {
         super.close();
-        try {
-            if (data != null && !data.isClosed()) {
-                data.close();
-            }
-        } catch (Exception ignored) {}
+        if (sqliteConnManager != null) {
+            sqliteConnManager.close();
+        }
+        if (data != null && !data.isClosed()) {
+            data.close();
+        }
     }
 
     @Override
     public Collection<Order> loadOrders() {
         try (
-                val connection = data.getConnection();
+                val connection = getConnection();
                 val getOrders = connection.prepareStatement("SELECT * FROM " + ORDER_TABLE)
         ) {
             val raw = getOrders.executeQuery();
@@ -112,7 +125,7 @@ public class SQLStorage extends Storage {
 
         DispatchUtil.async(() -> {
             try (
-                    val connection = data.getConnection();
+                    val connection = getConnection();
                     val create = connection.prepareStatement(CREATE_ORDER, Statement.RETURN_GENERATED_KEYS)
             ) {
                 val expiresAt = System.currentTimeMillis() + configs.getExpiresAfter();
@@ -148,7 +161,7 @@ public class SQLStorage extends Storage {
 
         DispatchUtil.async(() -> {
             try (
-                    val connection = data.getConnection();
+                    val connection = getConnection();
                     val getOrder = connection.prepareStatement(GET_ORDER);
                     val cancelOrder = connection.prepareStatement(CANCEL_ORDER);
                     val deleteOrder = connection.prepareStatement(DELETE_ORDER)
@@ -195,7 +208,7 @@ public class SQLStorage extends Storage {
 
         DispatchUtil.async(() -> {
             try (
-                    val connection = data.getConnection();
+                    val connection = getConnection();
                     val getOrder = connection.prepareStatement(GET_ORDER);
                     val updateOrder = connection.prepareStatement(UPDATE_ORDER)
             ) {
@@ -248,7 +261,7 @@ public class SQLStorage extends Storage {
 
         DispatchUtil.async(() -> {
             try (
-                    val connection = data.getConnection();
+                    val connection = getConnection();
                     val getOrder = connection.prepareStatement(GET_ORDER);
                     val updateOrder = connection.prepareStatement(UPDATE_ORDER);
                     val deleteOrder = connection.prepareStatement(DELETE_ORDER)
@@ -298,7 +311,7 @@ public class SQLStorage extends Storage {
         val future = new CompletableFuture<Void>();
         DispatchUtil.async(() -> {
             try (
-                    val connection = data.getConnection();
+                    val connection = getConnection();
                     val updateOrder = connection.prepareStatement("UPDATE " + ORDER_TABLE + " SET " + var + " = ? WHERE id = ?")
             ) {
                 val orderId = order.getId();
@@ -317,7 +330,7 @@ public class SQLStorage extends Storage {
         val future = new CompletableFuture<Void>();
         DispatchUtil.async(() -> {
             try (
-                    val connection = data.getConnection();
+                    val connection = getConnection();
                     val deleteOrder = connection.prepareStatement(DELETE_ORDER)
             ) {
                 deleteOrder.setInt(1, order.getId());
@@ -336,7 +349,7 @@ public class SQLStorage extends Storage {
         val future = new CompletableFuture<Void>();
         DispatchUtil.async(() -> {
            try (
-                   val connection = data.getConnection();
+                   val connection = getConnection();
                    val logTransaction = connection.prepareStatement(LOG_TRANSACTION)
            ) {
                logTransaction.setLong(1, System.currentTimeMillis());
@@ -357,7 +370,7 @@ public class SQLStorage extends Storage {
     @Override
     public void createTables() {
         try (
-                val connection = data.getConnection();
+                val connection = getConnection();
                 val createOrderTable = connection.prepareStatement(CREATE_ORDER_TABLE);
                 val createTransactionTable = connection.prepareStatement(CREATE_TRANSACTION_TABLE)
         ) {

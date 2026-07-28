@@ -12,9 +12,11 @@ import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 
 import java.io.File;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import me.neonjava.neonorder.storage.implementation.SQLiteConnectionManager;
 
 import static me.neonjava.neonorder.load.NeonOrder.plugin;
 
@@ -26,16 +28,19 @@ public abstract class Storage {
     private final String CUSTOM_ITEMS_TABLE = "neonorder_custom_items_v2";
     private final String BLACKLIST_TABLE = "neonorder_blacklist";
 
-    private final HikariDataSource modifiedItemDataSource;
+    private final HikariDataSource modifiedItemDataSource = null;
 
     public static void init() {
         Storage.configs = plugin.getConfigs();
         Storage.dataDir = plugin.getDataFolder();
     }
 
+    private final SQLiteConnectionManager sqliteConnManager;
+
     protected Storage() {
         File dbFile = new File(plugin.getDataFolder(), "modified_items.db");
-        this.modifiedItemDataSource = createSqliteDataSource("modified items pool", dbFile);
+        cleanupStaleWalShm(dbFile);
+        this.sqliteConnManager = new SQLiteConnectionManager(dbFile);
 
         val itemsList = loadItems();
         val blacklistAndCustomItems = loadBlacklistAndCustomItems();
@@ -43,28 +48,8 @@ public abstract class Storage {
         plugin.getDataCache().setItems(itemsList, blacklistAndCustomItems.first, blacklistAndCustomItems.second);
     }
 
-    public static HikariDataSource createSqliteDataSource(String poolName, File dbFile) {
-        cleanupStaleWalShm(dbFile);
-
-        HikariConfig conf = new HikariConfig();
-        conf.setPoolName(poolName);
-        conf.setJdbcUrl("jdbc:sqlite:" + dbFile.getAbsolutePath());
-        conf.setMaximumPoolSize(1);
-        conf.setConnectionInitSql("PRAGMA journal_mode=DELETE; PRAGMA synchronous=NORMAL; PRAGMA busy_timeout=10000;");
-
-        try {
-            return new HikariDataSource(conf);
-        } catch (Exception e) {
-            Log.warn("Failed to initialize SQLite pool '" + poolName + "'. Attempting corruption recovery...");
-            cleanupStaleWalShm(dbFile);
-            try {
-                return new HikariDataSource(conf);
-            } catch (Exception e2) {
-                Log.error("Database file " + dbFile.getName() + " is unrecoverably corrupted. Backing up and recreating clean database...", e2);
-                backupCorruptFile(dbFile);
-                return new HikariDataSource(conf);
-            }
-        }
+    public Connection getModifiedItemsConnection() throws SQLException {
+        return sqliteConnManager.getConnection();
     }
 
     private static void cleanupStaleWalShm(File dbFile) {
@@ -76,28 +61,15 @@ public abstract class Storage {
         } catch (Exception ignored) {}
     }
 
-    private static void backupCorruptFile(File dbFile) {
-        try {
-            File backup = new File(dbFile.getParentFile(), dbFile.getName() + ".corrupt." + System.currentTimeMillis());
-            if (dbFile.exists()) dbFile.renameTo(backup);
-            File wal = new File(dbFile.getParentFile(), dbFile.getName() + "-wal");
-            File shm = new File(dbFile.getParentFile(), dbFile.getName() + "-shm");
-            if (wal.exists()) wal.delete();
-            if (shm.exists()) shm.delete();
-        } catch (Exception ignored) {}
-    }
-
     public void close() {
-        try {
-            if (modifiedItemDataSource != null && !modifiedItemDataSource.isClosed()) {
-                modifiedItemDataSource.close();
-            }
-        } catch (Exception ignored) {}
+        if (sqliteConnManager != null) {
+            sqliteConnManager.close();
+        }
     }
 
     public void addBlacklist(ItemStack item) {
         try (
-                val connection = modifiedItemDataSource.getConnection();
+                val connection = getModifiedItemsConnection();
                 val addItem = connection.prepareStatement("INSERT INTO " + BLACKLIST_TABLE + " (item) VALUES (?)")
         ) {
             addItem.setBytes(1, item.serializeAsBytes());
@@ -109,7 +81,7 @@ public abstract class Storage {
 
     public void addCustomItem(ItemStack item) {
         try (
-                val connection = modifiedItemDataSource.getConnection();
+                val connection = getModifiedItemsConnection();
                 val addItem = connection.prepareStatement("INSERT INTO " + CUSTOM_ITEMS_TABLE + " (item, search) VALUES (?, ?)")
         ) {
             addItem.setBytes(1, item.serializeAsBytes());
@@ -122,7 +94,7 @@ public abstract class Storage {
 
     public void removeBlacklist(ItemStack item) {
         try (
-                val connection = modifiedItemDataSource.getConnection();
+                val connection = getModifiedItemsConnection();
                 val removeItem = connection.prepareStatement("DELETE FROM " + BLACKLIST_TABLE + " WHERE item = (?)")
         ) {
             removeItem.setBytes(1, item.serializeAsBytes());
@@ -134,7 +106,7 @@ public abstract class Storage {
 
     public void removeCustomItem(ItemStack item) {
         try (
-                val connection = modifiedItemDataSource.getConnection();
+                val connection = getModifiedItemsConnection();
                 val removeCustomItem = connection.prepareStatement("DELETE FROM " + CUSTOM_ITEMS_TABLE + " WHERE item = (?)")
         ) {
             removeCustomItem.setBytes(1, item.serializeAsBytes());
@@ -146,7 +118,7 @@ public abstract class Storage {
 
     public void updateCustomItemSearch(Pair<ItemStack, String> item) {
         try (
-                val connection = modifiedItemDataSource.getConnection();
+                val connection = getModifiedItemsConnection();
                 val updateSearch = connection.prepareStatement("UPDATE " + CUSTOM_ITEMS_TABLE + " SET search = ? WHERE item = ?")
         ) {
             updateSearch.setString(1, item.second);
@@ -159,7 +131,7 @@ public abstract class Storage {
 
     private Pair<Collection<ItemStack>, Collection<Pair<ItemStack, String>>> loadBlacklistAndCustomItems() {
         try (
-                val connection = modifiedItemDataSource.getConnection();
+                val connection = getModifiedItemsConnection();
                 val createCustomItemsTable = connection.prepareStatement("CREATE TABLE IF NOT EXISTS " + CUSTOM_ITEMS_TABLE + " (item BLOB, search VARCHAR(65535))");
                 val createBlacklistTable = connection.prepareStatement("CREATE TABLE IF NOT EXISTS " + BLACKLIST_TABLE + " (item BLOB)")
         ) {
@@ -172,7 +144,7 @@ public abstract class Storage {
         }
 
         try (
-                val connection = modifiedItemDataSource.getConnection();
+                val connection = getModifiedItemsConnection();
                 val getCustomItems = connection.prepareStatement("SELECT * FROM " + CUSTOM_ITEMS_TABLE);
                 val getBlacklist = connection.prepareStatement("SELECT * FROM " + BLACKLIST_TABLE)
         ) {
