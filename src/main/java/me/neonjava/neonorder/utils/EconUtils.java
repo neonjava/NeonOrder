@@ -15,7 +15,13 @@ public class EconUtils {
     private static ConfigCache cache;
 
     private static Economy getEco() {
-        org.bukkit.plugin.RegisteredServiceProvider<Economy> rsp = plugin.getServer().getServicesManager().getRegistration(Economy.class);
+        org.bukkit.plugin.ServicesManager sm = plugin.getServer().getServicesManager();
+        for (org.bukkit.plugin.RegisteredServiceProvider<Economy> rsp : sm.getRegistrations(Economy.class)) {
+            if (rsp.getProvider().getName().equalsIgnoreCase("NeonEconomy")) {
+                return rsp.getProvider();
+            }
+        }
+        org.bukkit.plugin.RegisteredServiceProvider<Economy> rsp = sm.getRegistration(Economy.class);
         return rsp != null ? rsp.getProvider() : null;
     }
 
