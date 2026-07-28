@@ -34,17 +34,57 @@ public abstract class Storage {
     }
 
     protected Storage() {
-        val modifiedItemsConfig = new HikariConfig();
-        modifiedItemsConfig.setPoolName("modified items pool");
-        modifiedItemsConfig.setJdbcUrl("jdbc:sqlite:" + plugin.getDataFolder() + File.separator + "modified_items.db");
-        modifiedItemsConfig.setMaximumPoolSize(1);
-        modifiedItemsConfig.setConnectionInitSql("PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA busy_timeout=10000;");
-        this.modifiedItemDataSource = new HikariDataSource(modifiedItemsConfig);
+        File dbFile = new File(plugin.getDataFolder(), "modified_items.db");
+        this.modifiedItemDataSource = createSqliteDataSource("modified items pool", dbFile);
 
         val itemsList = loadItems();
         val blacklistAndCustomItems = loadBlacklistAndCustomItems();
 
         plugin.getDataCache().setItems(itemsList, blacklistAndCustomItems.first, blacklistAndCustomItems.second);
+    }
+
+    public static HikariDataSource createSqliteDataSource(String poolName, File dbFile) {
+        cleanupStaleWalShm(dbFile);
+
+        HikariConfig conf = new HikariConfig();
+        conf.setPoolName(poolName);
+        conf.setJdbcUrl("jdbc:sqlite:" + dbFile.getAbsolutePath());
+        conf.setMaximumPoolSize(1);
+        conf.setConnectionInitSql("PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA busy_timeout=10000;");
+
+        try {
+            return new HikariDataSource(conf);
+        } catch (Exception e) {
+            Log.warn("Failed to initialize SQLite pool '" + poolName + "'. Attempting corruption recovery...");
+            cleanupStaleWalShm(dbFile);
+            try {
+                return new HikariDataSource(conf);
+            } catch (Exception e2) {
+                Log.error("Database file " + dbFile.getName() + " is unrecoverably corrupted. Backing up and recreating clean database...", e2);
+                backupCorruptFile(dbFile);
+                return new HikariDataSource(conf);
+            }
+        }
+    }
+
+    private static void cleanupStaleWalShm(File dbFile) {
+        try {
+            File wal = new File(dbFile.getParentFile(), dbFile.getName() + "-wal");
+            File shm = new File(dbFile.getParentFile(), dbFile.getName() + "-shm");
+            if (wal.exists()) wal.delete();
+            if (shm.exists()) shm.delete();
+        } catch (Exception ignored) {}
+    }
+
+    private static void backupCorruptFile(File dbFile) {
+        try {
+            File backup = new File(dbFile.getParentFile(), dbFile.getName() + ".corrupt." + System.currentTimeMillis());
+            if (dbFile.exists()) dbFile.renameTo(backup);
+            File wal = new File(dbFile.getParentFile(), dbFile.getName() + "-wal");
+            File shm = new File(dbFile.getParentFile(), dbFile.getName() + "-shm");
+            if (wal.exists()) wal.delete();
+            if (shm.exists()) shm.delete();
+        } catch (Exception ignored) {}
     }
 
     public void addBlacklist(ItemStack item) {

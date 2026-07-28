@@ -54,16 +54,17 @@ public class SQLStorage extends Storage {
     private SQLStorage(StorageMethod method, String jdbcUrl, String username, String password) {
         super();
         this.method = method;
-        val conf = new HikariConfig();
-        conf.setPoolName("orders data pool");
-        conf.setJdbcUrl(jdbcUrl);
-        if (username != null) conf.setUsername(username);
-        if (password != null) conf.setPassword(password);
         if (method == StorageMethod.SQLITE) {
-            conf.setMaximumPoolSize(1);
-            conf.setConnectionInitSql("PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA busy_timeout=10000;");
+            File dbFile = new File(dataDir, "data.db");
+            this.data = createSqliteDataSource("orders data pool", dbFile);
+        } else {
+            val conf = new HikariConfig();
+            conf.setPoolName("orders data pool");
+            conf.setJdbcUrl(jdbcUrl);
+            if (username != null) conf.setUsername(username);
+            if (password != null) conf.setPassword(password);
+            this.data = new HikariDataSource(conf);
         }
-        data = new HikariDataSource(conf);
 
         switch (method) {
             case SQLITE -> {
