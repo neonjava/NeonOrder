@@ -144,7 +144,12 @@ public class Bootstrapper implements PluginBootstrap {
                 @Override
                 public boolean execute(org.bukkit.command.CommandSender sender, String commandLabel, String[] args) {
                     if (sender instanceof org.bukkit.entity.Player player) {
-                        me.neonjava.neonorder.gui.YourOrderGUI.open(player, 0);
+                        if (args.length > 0) {
+                            String search = String.join(" ", args);
+                            new me.neonjava.neonorder.gui.MainGUI(player, 0, search);
+                        } else {
+                            new me.neonjava.neonorder.gui.MainGUI(player, 0);
+                        }
                     }
                     return true;
                 }
