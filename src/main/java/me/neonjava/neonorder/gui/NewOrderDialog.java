@@ -42,10 +42,34 @@ public class NewOrderDialog {
             return;
         }
 
+        int protocolVersion = PlayerUtils.getPlayerProtocolVersion(p);
+        boolean is1217Plus = protocolVersion >= 772 || protocolVersion == -1;
+
+        if (is1217Plus && cache.isUseDialogAPI()) {
+            try {
+                showSearchAndSelectDialog(p, null);
+                return;
+            } catch (Throwable t) {
+                // Fallback to Chest GUI if Dialog API fails
+            }
+        }
+
         ChooseItemGUI.choose(p, 0, 0);
     }
 
     public static void newSession(Player p, ItemStack displayItem) {
+        int protocolVersion = PlayerUtils.getPlayerProtocolVersion(p);
+        boolean is1217Plus = protocolVersion >= 772 || protocolVersion == -1;
+
+        if (is1217Plus && cache.isUseDialogAPI()) {
+            try {
+                checkAndShowEnchantDialog(p, displayItem, new java.util.HashMap<>());
+                return;
+            } catch (Throwable t) {
+                // Fallback to Chest GUI if Dialog API fails
+            }
+        }
+
         OrderConfigMenu configMenu = new OrderConfigMenu(p, displayItem);
         if (OrderEnchantGUI.isEnchantable(displayItem)) {
             new OrderEnchantGUI(p, configMenu, displayItem).open();
