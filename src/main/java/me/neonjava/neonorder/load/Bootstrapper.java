@@ -130,11 +130,27 @@ public class Bootstrapper implements PluginBootstrap {
     }
 
     public static void registerCommands(JavaPlugin plugin) {
-        plugin.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, e -> {
-            e.registrar().register(getOrderCmd("orders"));
-            e.registrar().register(getOrderCmd("order"));
-            e.registrar().register(getNeonOrderCmd("neonorder"));
-        });
+        try {
+            plugin.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, e -> {
+                e.registrar().register(getOrderCmd("orders"));
+                e.registrar().register(getOrderCmd("order"));
+                e.registrar().register(getNeonOrderCmd("neonorder"));
+            });
+        } catch (Exception ignored) {}
+
+        try {
+            org.bukkit.command.CommandMap commandMap = org.bukkit.Bukkit.getCommandMap();
+            org.bukkit.command.Command orderCmd = new org.bukkit.command.defaults.BukkitCommand("order", "Open orders GUI", "/order", java.util.List.of("orders")) {
+                @Override
+                public boolean execute(org.bukkit.command.CommandSender sender, String commandLabel, String[] args) {
+                    if (sender instanceof org.bukkit.entity.Player player) {
+                        me.neonjava.neonorder.gui.YourOrderGUI.open(player, 0);
+                    }
+                    return true;
+                }
+            };
+            commandMap.register(plugin.getName().toLowerCase(), orderCmd);
+        } catch (Exception ignored) {}
     }
 
     @Override
