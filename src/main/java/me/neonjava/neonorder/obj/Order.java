@@ -348,7 +348,15 @@ public class Order implements me.neonjava.neonorder.api.Order {
             return Response.FAIL;
         }
 
-        plugin.getStorage().createOrder(owner.getUniqueId(), item, amount, moneyPer);
+        plugin.getStorage().createOrder(owner.getUniqueId(), item, amount, moneyPer)
+                .exceptionally(err -> {
+                    // DB insertion failed after money was already taken — refund the player
+                    EconUtils.addMoney(owner, moneyPer * amount);
+                    owner.sendMessage(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage()
+                            .deserialize("<red>Your order could not be placed due to a server error. Your money has been refunded."));
+                    plugin.getServer().getLogger().severe("[NeonOrder] Failed to save order for " + owner.getName() + ": " + err.getMessage());
+                    return null;
+                });
 
         // Broadcast new order creation
         owner.getServer().getLogger().info("[Order] Broadcasting new order from " + owner.getName());
