@@ -39,11 +39,8 @@ public class SignGUI implements Listener {
         if (sessionsList.containsKey(p)) return;
 
         final int x = (int) Math.floor(p.getX());
-        int y = (int) Math.ceil(p.getY());
+        final int y = (int) Math.floor(p.getEyeLocation().getY());
         final int z = (int) Math.floor(p.getZ());
-        if (p.getPitch() < 0) {
-            y -= 4;
-        } else y += 5;
 
         // PAPER PACKET SENDING IMPLEMENTATION
         Sign signState = (Sign) blockType.createBlockData().createBlockState();
