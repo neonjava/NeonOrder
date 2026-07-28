@@ -162,9 +162,12 @@ public class ChooseItemGUI implements InventoryHolder {
         }
         if (buttonSlot == cache.getChooseSearchButton().getSlot()) {
             player.closeInventory();
-            AnvilInput.open(player, "Search Item", search == null ? "" : search, input -> {
-                player.getScheduler().run(plugin, task -> ChooseItemGUI.choose(player, sortIdx, input), null);
-            });
+            SignGUI.newSession(
+                    player,
+                    s -> player.getScheduler().run(plugin, task -> ChooseItemGUI.choose(player, sortIdx, s), null),
+                    cache.getLines(),
+                    cache.getSignBlock()
+            );
         }
     }
 

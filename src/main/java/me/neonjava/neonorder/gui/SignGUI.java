@@ -49,7 +49,12 @@ public class SignGUI implements Listener {
         val loc = new Location(p.getWorld(), x, y, z);
         p.sendBlockChange(loc, signState.getBlockData());
         p.sendBlockUpdate(loc, signState);
-        p.openVirtualSign(Position.block(loc), Side.FRONT);
+
+        p.getScheduler().runDelayed(plugin, task -> {
+            if (p.isOnline()) {
+                p.openVirtualSign(Position.block(loc), Side.FRONT);
+            }
+        }, null, 2L);
         // END
 
         sessionsList.put(p, new SignInfo(action, blockType, Position.block(loc)));
