@@ -129,13 +129,18 @@ public class Bootstrapper implements PluginBootstrap {
         return builder.build();
     }
 
-    @Override
-    public void bootstrap(@NonNull BootstrapContext ctx) {
-        ctx.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, e -> {
+    public static void registerCommands(JavaPlugin plugin) {
+        plugin.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, e -> {
             e.registrar().register(getOrderCmd("orders"));
             e.registrar().register(getOrderCmd("order"));
             e.registrar().register(getNeonOrderCmd("neonorder"));
         });
+    }
+
+    @Override
+    public void bootstrap(@NonNull BootstrapContext ctx) {
+        // Command registration moved to registerCommands() in onEnable() to ensure
+        // classloader is tied to JavaPlugin lifecycle, preventing 'zip file closed' errors on PlugMan reload.
     }
 
     @Override

@@ -123,6 +123,8 @@ public final class NeonOrder extends JavaPlugin {
         DeliveryConfirmDialog.init(this);
         ManageOrderDialog.init(this);
 
+        Bootstrapper.registerCommands(this);
+
         if (configs.isBStats()) {
             final int pluginId = 27569;
             val metrics = new Metrics(this, pluginId);
