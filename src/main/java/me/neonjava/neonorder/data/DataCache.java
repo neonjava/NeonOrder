@@ -58,6 +58,7 @@ public final class DataCache {
         all.addAll(parsedCustomItems);
 
         for (ItemStack item : all) {
+            if (item == null || me.neonjava.neonorder.storage.Storage.isRestrictedItem(item.getType())) continue;
             boolean isBlacklisted = false;
             for (ItemStack black : blacklistedItems) {
                 if (AlgoUtils.isSimilar(item, black)) {

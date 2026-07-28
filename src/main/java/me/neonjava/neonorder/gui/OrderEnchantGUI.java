@@ -185,12 +185,36 @@ public class OrderEnchantGUI implements InventoryHolder {
         Enchantment enchantment = getEnchantmentByBookIndex(bookIdx);
         if (enchantment == null) return;
 
-        if (isShift) {
+        Map<Enchantment, Integer> currentEnchants = getEnchantments(workingItem);
+        boolean isSelected = currentEnchants.containsKey(enchantment);
+
+        if (!isSelected) {
+            for (Enchantment selected : currentEnchants.keySet()) {
+                try {
+                    if (enchantment.conflictsWith(selected) || selected.conflictsWith(enchantment)) {
+                        return; // Conflicting book is not clickable!
+                    }
+                } catch (Exception ignored) {}
+            }
+        }
+
+        if (isSelected && isShift) {
             removeEnchantment(workingItem, enchantment);
             render();
             player.openInventory(inventory);
-        } else {
+            return;
+        }
+
+        if (enchantment.getMaxLevel() > 1) {
             new OrderEnchantLevelGUI(player, this, workingItem, enchantment).open();
+        } else {
+            if (isSelected) {
+                removeEnchantment(workingItem, enchantment);
+            } else {
+                setEnchantment(workingItem, enchantment, 1);
+            }
+            render();
+            player.openInventory(inventory);
         }
     }
 
@@ -234,6 +258,32 @@ public class OrderEnchantGUI implements InventoryHolder {
     @Override
     public Inventory getInventory() {
         return inventory;
+    }
+
+    public static void setEnchantment(ItemStack item, Enchantment enchantment, int level) {
+        if (item.getType() == Material.BOOK) {
+            item.setType(Material.ENCHANTED_BOOK);
+        }
+        boolean isBook = item.getType() == Material.ENCHANTED_BOOK;
+
+        io.papermc.paper.datacomponent.item.ItemEnchantments component = item.getData(
+                isBook ? io.papermc.paper.datacomponent.DataComponentTypes.STORED_ENCHANTMENTS : io.papermc.paper.datacomponent.DataComponentTypes.ENCHANTMENTS
+        );
+
+        io.papermc.paper.datacomponent.item.ItemEnchantments.Builder builder = io.papermc.paper.datacomponent.item.ItemEnchantments.itemEnchantments();
+        if (component != null) {
+            for (Map.Entry<Enchantment, Integer> entry : component.enchantments().entrySet()) {
+                if (entry.getKey() != enchantment) {
+                    builder.add(entry.getKey(), entry.getValue());
+                }
+            }
+        }
+        builder.add(enchantment, level);
+
+        item.setData(
+                isBook ? io.papermc.paper.datacomponent.DataComponentTypes.STORED_ENCHANTMENTS : io.papermc.paper.datacomponent.DataComponentTypes.ENCHANTMENTS,
+                builder.build()
+        );
     }
 
     private static Map<Enchantment, Integer> getEnchantments(ItemStack item) {

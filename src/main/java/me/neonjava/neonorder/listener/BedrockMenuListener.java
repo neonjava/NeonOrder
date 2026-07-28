@@ -56,7 +56,7 @@ public class BedrockMenuListener implements Listener {
         }
         if (e.getInventory().getHolder() instanceof OrderConfigMenu menu) {
             e.setCancelled(true);
-            menu.handle(e.getRawSlot());
+            menu.handle(e.getRawSlot(), e.isRightClick(), e.isShiftClick());
             return;
         }
         if (e.getInventory().getHolder() instanceof OrderEnchantGUI menu) {

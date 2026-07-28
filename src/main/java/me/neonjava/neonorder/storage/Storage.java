@@ -148,12 +148,22 @@ public abstract class Storage {
         val items = new ArrayList<ItemStack>();
         for (org.bukkit.Material mat : org.bukkit.Material.values()) {
             if (!mat.isLegacy() && mat.isItem() && !mat.isAir()) {
+                if (isRestrictedItem(mat)) continue;
                 items.add(new ItemStack(mat));
             }
         }
         plugin.VERSION = dataVer;
         Log.info("Generated " + items.size() + " items dynamically from Material registry (data version: " + dataVer + ").");
         return items;
+    }
+
+    public static boolean isRestrictedItem(org.bukkit.Material mat) {
+        if (mat == null || mat.isAir()) return true;
+        if (mat == org.bukkit.Material.BARRIER || mat == org.bukkit.Material.BEDROCK) return true;
+        if (mat == org.bukkit.Material.COMMAND_BLOCK || mat == org.bukkit.Material.CHAIN_COMMAND_BLOCK || mat == org.bukkit.Material.REPEATING_COMMAND_BLOCK || mat == org.bukkit.Material.COMMAND_BLOCK_MINECART) return true;
+        if (mat == org.bukkit.Material.STRUCTURE_BLOCK || mat == org.bukkit.Material.STRUCTURE_VOID || mat == org.bukkit.Material.JIGSAW) return true;
+        String name = mat.name();
+        return name.endsWith("_SPAWN_EGG");
     }
 
     public abstract Collection<Order> loadOrders();

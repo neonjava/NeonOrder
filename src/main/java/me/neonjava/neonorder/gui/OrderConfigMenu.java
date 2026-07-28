@@ -45,11 +45,15 @@ public class OrderConfigMenu implements InventoryHolder {
         ItemStack display = baseItem.clone();
         if (isEnchantable(baseItem)) {
             display = create(Material.CHEST, "§d§lSelect Enchantments",
-                    "§7Click to customize item enchantments.");
+                    "§7Left-Click to customize item enchantments.",
+                    "§eRight-Click / Shift-Click to select another item.");
         } else {
             ItemMeta meta = display.getItemMeta();
             if (meta != null) {
                 meta.displayName(Component.text("§e§lSelected Item"));
+                List<Component> lore = new ArrayList<>();
+                lore.add(Component.text("§7Click to select a different item from DB."));
+                meta.lore(lore);
                 display.setItemMeta(meta);
             }
         }
@@ -60,7 +64,11 @@ public class OrderConfigMenu implements InventoryHolder {
                 "§7Click to enter price per item via sign."));
 
         // Slot 16: Confirm Order (Lime Glass Pane)
-        inventory.setItem(16, create(Material.LIME_STAINED_GLASS_PANE, " "));
+        inventory.setItem(16, create(Material.LIME_STAINED_GLASS_PANE, "§a§l✔ Confirm Order",
+                "§7Order Summary:",
+                " §8• §7Amount: §f" + amount + " items",
+                " §8• §7Price per item: §e$" + price,
+                " §8• §6Total Cost: §e$" + (amount * price)));
     }
 
     private ItemStack create(Material mat, String name, String... lore) {
@@ -84,6 +92,10 @@ public class OrderConfigMenu implements InventoryHolder {
     }
 
     public void handle(int slot) {
+        handle(slot, false, false);
+    }
+
+    public void handle(int slot, boolean isRightClick, boolean isShiftClick) {
         if (slot == 10) { // Cancel / Back
             player.closeInventory();
             return;
@@ -123,12 +135,21 @@ public class OrderConfigMenu implements InventoryHolder {
             return;
         }
 
-        if (slot == 13 && isEnchantable(baseItem)) {
-            new OrderEnchantGUI(player, this, baseItem).open();
+        if (slot == 13) {
+            if (isRightClick || isShiftClick || !isEnchantable(baseItem)) {
+                player.closeInventory();
+                player.getScheduler().run(NeonOrder.plugin, task -> ChooseItemGUI.choose(player, 0, 0), null);
+            } else {
+                new OrderEnchantGUI(player, this, baseItem).open();
+            }
             return;
         }
 
         if (slot == 16) { // Confirm
+            if (me.neonjava.neonorder.storage.Storage.isRestrictedItem(baseItem.getType())) {
+                player.sendRichMessage("<red>This item cannot be ordered!");
+                return;
+            }
             player.closeInventory();
             Order.Response res = Order.create(player, baseItem, price, amount);
             if (res == Order.Response.SUCCESS) {
