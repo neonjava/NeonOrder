@@ -115,18 +115,18 @@ public class PlayerUtils {
     public static int getPlayerProtocolVersion(Player player) {
         if (Bukkit.getPluginManager().isPluginEnabled("ViaVersion")) {
             try {
-                Class<?> viaClass = Class.forName("com.viaversion.viaversion.api.Via");
-                Object viaApi = viaClass.getMethod("getAPI").invoke(null);
+                Object viaApi = Class.forName("com.viaversion.viaversion.api.Via").getMethod("getAPI").invoke(null);
                 if (viaApi != null) {
-                    for (java.lang.reflect.Method m : viaApi.getClass().getMethods()) {
-                        if (m.getName().equals("getPlayerVersion") && m.getParameterCount() == 1) {
-                            Object arg = m.getParameterTypes()[0].equals(java.util.UUID.class) ? player.getUniqueId() : player;
-                            Object versionObj = m.invoke(viaApi, arg);
-                            if (versionObj instanceof Number) {
-                                return ((Number) versionObj).intValue();
-                            }
-                        }
-                    }
+                    try {
+                        java.lang.reflect.Method m = viaApi.getClass().getMethod("getPlayerVersion", java.util.UUID.class);
+                        Object res = m.invoke(viaApi, player.getUniqueId());
+                        if (res instanceof Number n && n.intValue() > 0) return n.intValue();
+                    } catch (Throwable ignored) {}
+                    try {
+                        java.lang.reflect.Method m = viaApi.getClass().getMethod("getPlayerVersion", Player.class);
+                        Object res = m.invoke(viaApi, player);
+                        if (res instanceof Number n && n.intValue() > 0) return n.intValue();
+                    } catch (Throwable ignored) {}
                 }
             } catch (Throwable ignored) {}
         }
@@ -134,10 +134,9 @@ public class PlayerUtils {
             if (Bukkit.getPluginManager().isPluginEnabled("ProtocolLib")) {
                 Object protocolManager = Class.forName("com.comphenix.protocol.ProtocolLibrary").getMethod("getProtocolManager").invoke(null);
                 if (protocolManager != null) {
-                    Object versionObj = protocolManager.getClass().getMethod("getProtocolVersion", Player.class).invoke(protocolManager, player);
-                    if (versionObj instanceof Number) {
-                        return ((Number) versionObj).intValue();
-                    }
+                    java.lang.reflect.Method m = protocolManager.getClass().getMethod("getProtocolVersion", Player.class);
+                    Object res = m.invoke(protocolManager, player);
+                    if (res instanceof Number n && n.intValue() > 0) return n.intValue();
                 }
             }
         } catch (Throwable ignored) {}
