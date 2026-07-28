@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class OrderEnchantGUI implements InventoryHolder {
     private static final int[] BOOK_SLOTS = {
@@ -80,12 +81,31 @@ public class OrderEnchantGUI implements InventoryHolder {
             inventory.setItem(s, border);
         }
 
-        // 2. Put Helmet/tool at slot 0
-        inventory.setItem(0, workingItem);
+        // 2. Put Helmet/tool at slot 0 with hover lore showing selected enchantments
+        Map<Enchantment, Integer> currentEnchants = getEnchantments(workingItem);
+        ItemStack displayWorking = workingItem.clone();
+        ItemMeta workingMeta = displayWorking.getItemMeta();
+        if (workingMeta != null) {
+            List<Component> lore = new ArrayList<>();
+            if (workingMeta.hasLore() && workingMeta.lore() != null) {
+                lore.addAll(Objects.requireNonNull(workingMeta.lore()));
+                lore.add(Component.empty());
+            }
+            lore.add(Component.text("§e§lSelected Enchantments:"));
+            if (currentEnchants.isEmpty()) {
+                lore.add(Component.text("§7  - None (Click books on the right to select)"));
+            } else {
+                for (Map.Entry<Enchantment, Integer> entry : currentEnchants.entrySet()) {
+                    String name = capitalize(entry.getKey().getKey().value().replace("_", " "));
+                    lore.add(Component.text("§a  + " + name + " " + entry.getValue()));
+                }
+            }
+            workingMeta.lore(lore);
+            displayWorking.setItemMeta(workingMeta);
+        }
+        inventory.setItem(0, displayWorking);
 
         // 3. Render books
-        Map<Enchantment, Integer> currentEnchants = getEnchantments(workingItem);
-
         int bookIdx = 0;
         for (Enchantment enchantment : applicableEnchants) {
             if (bookIdx >= BOOK_SLOTS.length) break;
@@ -124,9 +144,14 @@ public class OrderEnchantGUI implements InventoryHolder {
                 }
 
                 List<Component> lore = new ArrayList<>();
-                lore.add(Component.text("§7Click to select/change level."));
                 if (isSelected) {
+                    lore.add(Component.text("§7Status: §a§l[SELECTED]"));
+                    lore.add(Component.text("§7Click to change level."));
                     lore.add(Component.text("§cShift-click to remove."));
+                    meta.setEnchantmentGlintOverride(true);
+                } else {
+                    lore.add(Component.text("§7Status: §8[NOT SELECTED]"));
+                    lore.add(Component.text("§eClick to select enchantment."));
                 }
                 meta.lore(lore);
                 book.setItemMeta(meta);
