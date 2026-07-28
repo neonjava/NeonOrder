@@ -19,8 +19,8 @@ import java.util.*;
 public final class DataCache {
 
     private static final Registry<BlockType> BLOCK_REGISTRY = Registry.BLOCK;
-    private final TreeSet<ItemStack> itemsAZ = new TreeSet<>(AlgoUtils.getComparator(SortTypes.A_Z));
-    private final TreeSet<ItemStack> itemsZA = new TreeSet<>(AlgoUtils.getComparator(SortTypes.Z_A));
+    private final List<ItemStack> itemsAZ = new ArrayList<>();
+    private final List<ItemStack> itemsZA = new ArrayList<>();
 
     @Getter
     private final HashSet<Pair<ItemStack, String>> customItems = new HashSet<>();
@@ -48,22 +48,31 @@ public final class DataCache {
             Collection<Pair<ItemStack, String>> customItems) {
         itemsAZ.clear();
         itemsZA.clear();
-        itemsAZ.addAll(bukkitItems);
-        itemsZA.addAll(bukkitItems);
 
+        List<ItemStack> all = new ArrayList<>(bukkitItems);
         final List<ItemStack> parsedCustomItems = customItems.stream().map(item -> {
             final ItemStack stack = item.first.clone();
             stack.editMeta(meta -> PDCUtils.setSearch(meta, item.second));
             return stack;
         }).toList();
+        all.addAll(parsedCustomItems);
 
-        itemsAZ.addAll(parsedCustomItems);
-        itemsZA.addAll(parsedCustomItems);
-
-        for (ItemStack e : blacklistedItems) {
-            itemsAZ.remove(e);
-            itemsZA.remove(e);
+        for (ItemStack item : all) {
+            boolean isBlacklisted = false;
+            for (ItemStack black : blacklistedItems) {
+                if (AlgoUtils.isSimilar(item, black)) {
+                    isBlacklisted = true;
+                    break;
+                }
+            }
+            if (!isBlacklisted) {
+                itemsAZ.add(item);
+                itemsZA.add(item);
+            }
         }
+
+        itemsAZ.sort(AlgoUtils.getComparator(SortTypes.A_Z));
+        itemsZA.sort(AlgoUtils.getComparator(SortTypes.Z_A));
 
         Log.info("Loaded " + itemsAZ.size() + " items.");
         setBlacklistAndCustomItems(blacklistedItems, customItems);
@@ -144,7 +153,7 @@ public final class DataCache {
         }
     }
 
-    public TreeSet<ItemStack> getItems(SortTypes sortType) {
+    public List<ItemStack> getItems(SortTypes sortType) {
         switch (sortType) {
             case A_Z -> {
                 return itemsAZ;
