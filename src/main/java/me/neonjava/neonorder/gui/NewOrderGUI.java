@@ -69,12 +69,12 @@ public class NewOrderGUI {
             ChooseItemGUI.choose(p, 0, 0);
         }), 4, 0);
 
-        // Slot 15 (Row 1, Col 6): Price - Emerald Icon
-        ItemStack priceBtn = new ItemStack(Material.EMERALD);
+        // Slot 15 (Row 1, Col 6): Price - Diamond Icon
+        ItemStack priceBtn = new ItemStack(Material.DIAMOND);
         ItemMeta pim = priceBtn.getItemMeta();
         if (pim != null) {
             String priceVal = priceCache.getOrDefault(p.getUniqueId(), "1");
-            pim.displayName(mm.deserialize("<gold>Price Per Item: <yellow>" + priceVal)
+            pim.displayName(mm.deserialize("<gold>Price Per Item: <yellow>$" + priceVal)
                     .decoration(TextDecoration.ITALIC, false));
             List<Component> lore = new ArrayList<>();
             lore.add(mm.deserialize("<gray>Click to set price").decoration(TextDecoration.ITALIC, false));
@@ -87,8 +87,8 @@ public class NewOrderGUI {
             openSignGUI(p, displayItem, "price");
         }), 6, 0);
 
-        // Slot 20 (Row 2, Col 2): Amount - Green Glass Pane
-        ItemStack amountBtn = new ItemStack(Material.GREEN_STAINED_GLASS_PANE);
+        // Slot 20 (Row 2, Col 2): Amount - Emerald Icon
+        ItemStack amountBtn = new ItemStack(Material.EMERALD);
         ItemMeta aim = amountBtn.getItemMeta();
         if (aim != null) {
             String amountVal = amountCache.getOrDefault(p.getUniqueId(), "1");

@@ -37,8 +37,8 @@ public class OrderConfigMenu implements InventoryHolder {
         // Slot 10: Cancel / Back (Red Glass Pane)
         inventory.setItem(10, create(Material.RED_STAINED_GLASS_PANE, " "));
 
-        // Slot 12: Set Amount (Stone)
-        inventory.setItem(12, create(Material.STONE, "§b§lAmount: §f" + amount,
+        // Slot 12: Set Amount (Emerald)
+        inventory.setItem(12, create(Material.EMERALD, "§b§lAmount: §f" + amount,
                 "§7Click to enter amount via sign."));
 
         // Slot 13: Summary / Enchantments (Chest)
@@ -59,8 +59,8 @@ public class OrderConfigMenu implements InventoryHolder {
         }
         inventory.setItem(13, display);
 
-        // Slot 14: Set Price Per Item (Emerald)
-        inventory.setItem(14, create(Material.EMERALD, "§a§lPrice Per Item: §f$" + price,
+        // Slot 14: Set Price Per Item (Diamond)
+        inventory.setItem(14, create(Material.DIAMOND, "§a§lPrice Per Item: §f$" + price,
                 "§7Click to enter price per item via sign."));
 
         // Slot 16: Confirm Order (Lime Glass Pane)
