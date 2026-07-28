@@ -81,29 +81,9 @@ public class OrderEnchantGUI implements InventoryHolder {
             inventory.setItem(s, border);
         }
 
-        // 2. Put Helmet/tool at slot 0 with hover lore showing selected enchantments
+        // 2. Put main item at slot 0
         Map<Enchantment, Integer> currentEnchants = getEnchantments(workingItem);
-        ItemStack displayWorking = workingItem.clone();
-        ItemMeta workingMeta = displayWorking.getItemMeta();
-        if (workingMeta != null) {
-            List<Component> lore = new ArrayList<>();
-            if (workingMeta.hasLore() && workingMeta.lore() != null) {
-                lore.addAll(Objects.requireNonNull(workingMeta.lore()));
-                lore.add(Component.empty());
-            }
-            lore.add(Component.text("§e§lSelected Enchantments:"));
-            if (currentEnchants.isEmpty()) {
-                lore.add(Component.text("§7  - None (Click books on the right to select)"));
-            } else {
-                for (Map.Entry<Enchantment, Integer> entry : currentEnchants.entrySet()) {
-                    String name = capitalize(entry.getKey().getKey().value().replace("_", " "));
-                    lore.add(Component.text("§a  + " + name + " " + entry.getValue()));
-                }
-            }
-            workingMeta.lore(lore);
-            displayWorking.setItemMeta(workingMeta);
-        }
-        inventory.setItem(0, displayWorking);
+        inventory.setItem(0, workingItem);
 
         // 3. Render books
         int bookIdx = 0;
@@ -112,22 +92,14 @@ public class OrderEnchantGUI implements InventoryHolder {
 
             boolean conflicts = false;
             for (Enchantment selected : currentEnchants.keySet()) {
-                if (selected == enchantment) {
-                    conflicts = true;
-                    break;
+                if (selected != enchantment) {
+                    try {
+                        if (enchantment.conflictsWith(selected) || selected.conflictsWith(enchantment)) {
+                            conflicts = true;
+                            break;
+                        }
+                    } catch (Exception ignored) {}
                 }
-                try {
-                    if (enchantment.conflictsWith(selected) || selected.conflictsWith(enchantment)) {
-                        conflicts = true;
-                        break;
-                    }
-                } catch (Exception e) {
-                    // ignore
-                }
-            }
-
-            if (conflicts && !currentEnchants.containsKey(enchantment)) {
-                continue;
             }
 
             ItemStack book = new ItemStack(Material.ENCHANTED_BOOK);
@@ -137,21 +109,19 @@ public class OrderEnchantGUI implements InventoryHolder {
                 name = capitalize(name);
                 
                 boolean isSelected = currentEnchants.containsKey(enchantment);
-                if (isSelected) {
-                    meta.displayName(Component.text("§a§l" + name + " (Level " + currentEnchants.get(enchantment) + ")"));
-                } else {
-                    meta.displayName(Component.text("§d§l" + name));
-                }
+                int level = isSelected ? currentEnchants.get(enchantment) : 1;
+
+                meta.displayName(Component.text("§bEnchanted Book"));
 
                 List<Component> lore = new ArrayList<>();
+                lore.add(Component.text("§7" + name + " " + toRoman(level)));
                 if (isSelected) {
-                    lore.add(Component.text("§7Status: §a§l[SELECTED]"));
-                    lore.add(Component.text("§7Click to change level."));
-                    lore.add(Component.text("§cShift-click to remove."));
+                    lore.add(Component.text("§aSelected"));
                     meta.setEnchantmentGlintOverride(true);
+                } else if (conflicts) {
+                    lore.add(Component.text("§cCannot add this enchantment"));
                 } else {
-                    lore.add(Component.text("§7Status: §8[NOT SELECTED]"));
-                    lore.add(Component.text("§eClick to select enchantment."));
+                    lore.add(Component.text("§7Click to select"));
                 }
                 meta.lore(lore);
                 book.setItemMeta(meta);
@@ -159,27 +129,36 @@ public class OrderEnchantGUI implements InventoryHolder {
             inventory.setItem(BOOK_SLOTS[bookIdx++], book);
         }
 
-        // 4. Back / Cancel button at slot 46
+        // 4. Back / Cancel button at slot 47
         ItemStack cancel = new ItemStack(Material.RED_STAINED_GLASS_PANE);
         ItemMeta cancelMeta = cancel.getItemMeta();
         if (cancelMeta != null) {
-            cancelMeta.displayName(Component.text("§c§lCancel / Back"));
+            cancelMeta.displayName(Component.text(" "));
             cancel.setItemMeta(cancelMeta);
         }
-        inventory.setItem(46, cancel);
+        inventory.setItem(47, cancel);
 
         // 5. Confirm / Save button at slot 52
         ItemStack save = new ItemStack(Material.GREEN_STAINED_GLASS_PANE);
         ItemMeta saveMeta = save.getItemMeta();
         if (saveMeta != null) {
-            saveMeta.displayName(Component.text("§a§lSave & Confirm"));
+            saveMeta.displayName(Component.text(" "));
             save.setItemMeta(saveMeta);
         }
         inventory.setItem(52, save);
+
+        // 6. Arrow at slot 53
+        ItemStack arrow = new ItemStack(Material.ARROW);
+        ItemMeta arrowMeta = arrow.getItemMeta();
+        if (arrowMeta != null) {
+            arrowMeta.displayName(Component.text(" "));
+            arrow.setItemMeta(arrowMeta);
+        }
+        inventory.setItem(53, arrow);
     }
 
     public void handle(int slot, boolean isShift) {
-        if (slot == 46) {
+        if (slot == 46 || slot == 47) {
             parentMenu.open();
             return;
         }
@@ -301,5 +280,21 @@ public class OrderEnchantGUI implements InventoryHolder {
             sb.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1));
         }
         return sb.toString();
+    }
+
+    private static String toRoman(int number) {
+        return switch (number) {
+            case 1 -> "I";
+            case 2 -> "II";
+            case 3 -> "III";
+            case 4 -> "IV";
+            case 5 -> "V";
+            case 6 -> "VI";
+            case 7 -> "VII";
+            case 8 -> "VIII";
+            case 9 -> "IX";
+            case 10 -> "X";
+            default -> String.valueOf(number);
+        };
     }
 }

@@ -27,52 +27,40 @@ public class OrderConfigMenu implements InventoryHolder {
         this.player = player;
         this.baseItem = baseItem.clone();
         this.baseItem.setAmount(1);
-        this.inventory = Bukkit.createInventory(this, 27, Component.text("Confirm New Order"));
+        this.inventory = Bukkit.createInventory(this, 27, Component.text("Orders -> New Order"));
         render();
     }
 
     public void render() {
         inventory.clear();
 
-        // Slot 10: Set Amount (Sign Input) - Use the Search Sign Type as requested
-        inventory.setItem(11, create(Material.OAK_SIGN, "§b§lSet Amount: §f" + amount,
-                "§7Click to enter amount via sign.",
-                "§7Format: §e10  10k  10m  1b"));
+        // Slot 10: Cancel / Back (Red Glass Pane)
+        inventory.setItem(10, create(Material.RED_STAINED_GLASS_PANE, " "));
 
-        // Slot 13: Summary (The Item)
+        // Slot 12: Set Amount (Stone)
+        inventory.setItem(12, create(Material.STONE, "§b§lAmount: §f" + amount,
+                "§7Click to enter amount via sign."));
+
+        // Slot 13: Summary / Enchantments (Chest)
         ItemStack display = baseItem.clone();
-        ItemMeta meta = display.getItemMeta();
-        if (meta != null) {
-            meta.displayName(Component.text("§e§lOrder Review"));
-            List<Component> lore = new ArrayList<>();
-            lore.add(Component.text("§7Amount: §f" + amount));
-            lore.add(Component.text("§7Price/Ea: §f$" + price));
-            lore.add(Component.text(" "));
-            lore.add(Component.text("§6§lTotal Cost: §e$" + (amount * price)));
-            meta.lore(lore);
-            display.setItemMeta(meta);
+        if (isEnchantable(baseItem)) {
+            display = create(Material.CHEST, "§d§lSelect Enchantments",
+                    "§7Click to customize item enchantments.");
+        } else {
+            ItemMeta meta = display.getItemMeta();
+            if (meta != null) {
+                meta.displayName(Component.text("§e§lSelected Item"));
+                display.setItemMeta(meta);
+            }
         }
         inventory.setItem(13, display);
 
-        // Slot 15: Set Price (Sign Input)
-        inventory.setItem(15, create(Material.GOLD_INGOT, "§6§lSet Price/Ea: §f$" + price,
-                "§7Click to enter price per item via sign.",
-                "§7Format: §e10  10k  10m  1b"));
+        // Slot 14: Set Price Per Item (Emerald)
+        inventory.setItem(14, create(Material.EMERALD, "§a§lPrice Per Item: §f$" + price,
+                "§7Click to enter price per item via sign."));
 
-        // Slot 12: Enchantments (Enchanted Book)
-        if (isEnchantable(baseItem)) {
-            inventory.setItem(12, create(Material.ENCHANTED_BOOK, "§d§lSelect Enchantments",
-                    "§7Click to customize item enchantments."));
-        }
-
-        // Slot 22: Confirm (Lime Glass)
-        inventory.setItem(22, create(Material.LIME_STAINED_GLASS_PANE, "§a§l✔ Confirm Order",
-                "§7Click to place the order.",
-                "",
-                "§7Order Summary:",
-                " §8• §7Amount: §f" + amount + " items",
-                " §8• §7Price per item: §e$" + price,
-                " §8• §6Total Cost: §e$" + (amount * price)));
+        // Slot 16: Confirm Order (Lime Glass Pane)
+        inventory.setItem(16, create(Material.LIME_STAINED_GLASS_PANE, " "));
     }
 
     private ItemStack create(Material mat, String name, String... lore) {
@@ -81,8 +69,9 @@ public class OrderConfigMenu implements InventoryHolder {
         if (meta != null) {
             meta.displayName(Component.text(name));
             List<Component> l = new ArrayList<>();
-            for (String s : lore)
-                l.add(Component.text(s));
+            for (String s : lore) {
+                if (!s.isEmpty()) l.add(Component.text(s));
+            }
             meta.lore(l);
             is.setItemMeta(meta);
         }
@@ -95,13 +84,18 @@ public class OrderConfigMenu implements InventoryHolder {
     }
 
     public void handle(int slot) {
-        if (slot == 11) { // Amount
+        if (slot == 10) { // Cancel / Back
+            player.closeInventory();
+            return;
+        }
+
+        if (slot == 12) { // Amount
             player.closeInventory();
             List<String> lines = List.of(
                 "",
-                "^^^^^^^^^^^^",
-                "Amount:",
-                "Enter value"
+                "^^^^^^^^^^^",
+                "Amount",
+                ""
             );
             SignGUI.newSession(player, text -> {
                 double val = ConvertUtils.formatNumber(text);
@@ -112,13 +106,13 @@ public class OrderConfigMenu implements InventoryHolder {
             return;
         }
 
-        if (slot == 15) { // Price
+        if (slot == 14) { // Price
             player.closeInventory();
             List<String> lines = List.of(
                 "",
-                "^^^^^^^^^^^^",
-                "Price:",
-                "Enter value"
+                "^^^^^^^^^^^",
+                "Price Per",
+                "Item"
             );
             SignGUI.newSession(player, text -> {
                 double val = ConvertUtils.formatNumber(text);
@@ -129,12 +123,12 @@ public class OrderConfigMenu implements InventoryHolder {
             return;
         }
 
-        if (slot == 12 && isEnchantable(baseItem)) {
+        if (slot == 13 && isEnchantable(baseItem)) {
             new OrderEnchantGUI(player, this, baseItem).open();
             return;
         }
 
-        if (slot == 22) { // Confirm
+        if (slot == 16) { // Confirm
             player.closeInventory();
             Order.Response res = Order.create(player, baseItem, price, amount);
             if (res == Order.Response.SUCCESS) {
