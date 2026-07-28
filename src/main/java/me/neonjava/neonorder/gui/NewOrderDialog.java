@@ -42,13 +42,7 @@ public class NewOrderDialog {
             return;
         }
 
-        int protocol = me.neonjava.neonorder.utils.PlayerUtils.getPlayerProtocolVersion(p);
-        NeonOrder.plugin.getLogger().info("[NewOrderDialog] Player " + p.getName() + " protocol detected: " + protocol);
-        if (cache.isUseDialogAPI() && NeonOrder.hasDialogAPI && !me.neonjava.neonorder.utils.BedrockUtils.isBedrock(p) && protocol >= 772) {
-            showSearchAndSelectDialog(p, null);
-        } else {
-            ChooseItemGUI.choose(p, 0, 0);
-        }
+        ChooseItemGUI.choose(p, 0, 0);
     }
 
     public static void newSession(Player p, ItemStack displayItem) {
