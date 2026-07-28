@@ -83,6 +83,16 @@ public class SQLStorage extends Storage {
     }
 
     @Override
+    public void close() {
+        super.close();
+        try {
+            if (data != null && !data.isClosed()) {
+                data.close();
+            }
+        } catch (Exception ignored) {}
+    }
+
+    @Override
     public Collection<Order> loadOrders() {
         try (
                 val connection = data.getConnection();

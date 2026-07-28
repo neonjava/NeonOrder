@@ -50,7 +50,7 @@ public abstract class Storage {
         conf.setPoolName(poolName);
         conf.setJdbcUrl("jdbc:sqlite:" + dbFile.getAbsolutePath());
         conf.setMaximumPoolSize(1);
-        conf.setConnectionInitSql("PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA busy_timeout=10000;");
+        conf.setConnectionInitSql("PRAGMA journal_mode=DELETE; PRAGMA synchronous=NORMAL; PRAGMA busy_timeout=10000;");
 
         try {
             return new HikariDataSource(conf);
@@ -84,6 +84,14 @@ public abstract class Storage {
             File shm = new File(dbFile.getParentFile(), dbFile.getName() + "-shm");
             if (wal.exists()) wal.delete();
             if (shm.exists()) shm.delete();
+        } catch (Exception ignored) {}
+    }
+
+    public void close() {
+        try {
+            if (modifiedItemDataSource != null && !modifiedItemDataSource.isClosed()) {
+                modifiedItemDataSource.close();
+            }
         } catch (Exception ignored) {}
     }
 
