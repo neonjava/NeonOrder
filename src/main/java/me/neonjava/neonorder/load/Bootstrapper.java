@@ -83,6 +83,26 @@ public class Bootstrapper implements PluginBootstrap {
                 );
 
         builder
+                .then(Commands.literal("debug")
+                        .executes(ctx -> {
+                            val sender = ctx.getSource().getSender();
+                            sender.sendMessage(Component.text("=== [NeonOrder Debug Info] ==="));
+                            if (sender instanceof Player p) {
+                                int protocol = me.neonjava.neonorder.utils.PlayerUtils.getPlayerProtocolVersion(p);
+                                sender.sendMessage(Component.text("Player: " + p.getName()));
+                                sender.sendMessage(Component.text("Protocol Version: " + protocol));
+                                sender.sendMessage(Component.text("Is Bedrock (Geyser): " + me.neonjava.neonorder.utils.BedrockUtils.isBedrock(p)));
+                                sender.sendMessage(Component.text("Will Use Paper Dialog: " + (plugin.getConfigs().isUseDialogAPI() && NeonOrder.hasDialogAPI && !me.neonjava.neonorder.utils.BedrockUtils.isBedrock(p) && protocol >= 772)));
+                            }
+                            var itemsAZ = plugin.getDataCache().getItems(SortTypes.A_Z);
+                            sender.sendMessage(Component.text("Total Selectable Items: " + itemsAZ.size()));
+                            if (!itemsAZ.isEmpty()) {
+                                String first5 = itemsAZ.stream().limit(5).map(i -> i.getType().name()).reduce((a, b) -> a + ", " + b).orElse("");
+                                sender.sendMessage(Component.text("Sample Items: " + first5));
+                            }
+                            return 1;
+                        })
+                )
                 .then(Commands.literal("test")
                         .executes(ctx -> {
                             val sender = ctx.getSource().getExecutor();
