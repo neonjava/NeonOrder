@@ -165,12 +165,9 @@ public class MainGUI implements InventoryHolder {
         }
         if (buttonSlot == cache.getOrdersSearchButton().getSlot()) {
             player.closeInventory();
-            SignGUI.newSession(
-                    player,
-                    s -> player.getScheduler().run(plugin, t -> new MainGUI(player, sortIdx, s), null),
-                    cache.getLines(),
-                    cache.getSignBlock()
-            );
+            AnvilInput.open(player, "Search Orders", search == null ? "" : search, input -> {
+                player.getScheduler().run(plugin, task -> new MainGUI(player, sortIdx, input), null);
+            });
             return;
         }
         if (buttonSlot == cache.getYoButton().getSlot()) {

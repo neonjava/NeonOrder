@@ -104,35 +104,23 @@ public class OrderConfigMenu implements InventoryHolder {
 
         if (slot == 12) { // Amount
             player.closeInventory();
-            List<String> lines = List.of(
-                "",
-                "^^^^^^^^^^^",
-                "Amount",
-                ""
-            );
-            SignGUI.newSession(player, text -> {
+            AnvilInput.open(player, "Enter Amount", String.valueOf(this.amount), text -> {
                 double val = ConvertUtils.formatNumber(text);
                 if (val > 0)
                     this.amount = (int) val;
                 player.getScheduler().run(NeonOrder.plugin, task -> this.open(), null);
-            }, lines, BlockType.OAK_SIGN);
+            });
             return;
         }
 
         if (slot == 14) { // Price
             player.closeInventory();
-            List<String> lines = List.of(
-                "",
-                "^^^^^^^^^^^",
-                "Price Per",
-                "Item"
-            );
-            SignGUI.newSession(player, text -> {
+            AnvilInput.open(player, "Enter Price", String.valueOf(this.price), text -> {
                 double val = ConvertUtils.formatNumber(text);
                 if (val > 0)
                     this.price = val;
                 player.getScheduler().run(NeonOrder.plugin, task -> this.open(), null);
-            }, lines, BlockType.OAK_SIGN);
+            });
             return;
         }
 
