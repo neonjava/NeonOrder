@@ -73,10 +73,17 @@ public class SignGUI implements Listener {
         if (info == null) return;
         final BlockPosition pos = info.pos();
         if (!e.getEditedBlockPosition().equals(pos)) return;
-        final String firstLine = e.lines().isEmpty()
-                ? ""
-                : PlainTextComponentSerializer.plainText().serialize(e.lines().get(0));
-        info.action().accept(firstLine);
+        StringBuilder inputBuilder = new StringBuilder();
+        for (net.kyori.adventure.text.Component lineComp : e.lines()) {
+            String text = PlainTextComponentSerializer.plainText().serialize(lineComp).trim();
+            if (text.contains("↑") || text.contains("^") || text.equalsIgnoreCase("Search")) continue;
+            if (!text.isEmpty()) {
+                if (inputBuilder.length() > 0) inputBuilder.append(" ");
+                inputBuilder.append(text);
+            }
+        }
+        final String fullInput = inputBuilder.toString().trim();
+        info.action().accept(fullInput);
 
         sessionsList.remove(player);
 
