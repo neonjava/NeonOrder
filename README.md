@@ -17,4 +17,6 @@ Build with `./gradlew build` and install the JAR on a compatible Paper server.
 
 ## License
 
-This repository includes contributions from other authors and remains under [Apache-2.0](LICENSE).
+This repository includes contributions from other authors and remains under [AGPL-3.0](LICENSE).
+
+Original upstream license and notice: [LICENSE.upstream](LICENSE.upstream).
